@@ -113,6 +113,27 @@ The agent connects to the MCP server automatically via stdio.
 
 ---
 
+## Claude Code Skills
+
+If you are using [Claude Code](https://claude.ai/code), two slash commands are available after cloning:
+
+| Skill | What it does |
+|-------|-------------|
+| `/hn-research <query>` | Validates prerequisites and runs the research agent in one-shot mode |
+| `/run-evals [unit\|integration\|eval]` | Runs the full test suite or a specific tier |
+
+**Examples:**
+```
+/hn-research What are people saying about Rust in 2025?
+/run-evals
+/run-evals unit
+/run-evals eval
+```
+
+Both skills check for `ANTHROPIC_API_KEY` and print clear fix instructions if it is missing. Skills are defined in `.claude/commands/`.
+
+---
+
 ## Running Tests
 
 ```bash
@@ -143,6 +164,10 @@ pytest -m "not eval" -v
 
 ```
 hn-pulse/
+├── .claude/
+│   └── commands/
+│       ├── hn-research.md     # /hn-research — runs the research agent
+│       └── run-evals.md       # /run-evals — three-tier test runner
 ├── src/hn_pulse/
 │   ├── server.py          # MCPApp entrypoint — registers all tools
 │   ├── client.py          # httpx client factory (HN + Algolia)
