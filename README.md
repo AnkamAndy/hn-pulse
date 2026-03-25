@@ -183,6 +183,9 @@ hn-pulse/
 │   ├── unit/              # pytest-httpx mocked tool tests
 │   ├── integration/       # real MCP server startup tests
 │   └── evals/             # Claude tool-selection accuracy tests
+├── docs/
+│   ├── spec.md            # Spec-driven development prompt to recreate this project
+│   └── systems-design.html # Architecture diagram + design trade-offs
 ├── pyproject.toml
 └── .env.example
 ```
@@ -196,6 +199,8 @@ hn-pulse/
 **Concurrent item fetches**: The HN Firebase API returns only ID arrays from feed endpoints. Fetching N stories naively would require N sequential round trips. All tools use `asyncio.gather()` to fetch items in parallel, reducing latency to ~2 round trips regardless of count.
 
 **Algolia metadata stripping**: Algolia search results include `_highlightResult`, `children` (arrays of comment IDs), and other metadata that bloat LLM context. `_clean_hit()` strips these before returning, reducing each result from ~2 KB to ~200 bytes.
+
+For the full spec used to build this project (suitable for reproducing it with an AI coding agent), see [docs/spec.md](docs/spec.md).
 
 ---
 
