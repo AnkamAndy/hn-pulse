@@ -101,6 +101,8 @@ arcade configure claude
 
 ## Running the Research Agent
 
+### Local mode (default — server spawned as subprocess)
+
 ```bash
 # Interactive mode
 python agent/agent.py
@@ -111,7 +113,26 @@ python agent/agent.py "Find ML job postings on HN"
 python agent/agent.py "Summarize the top Show HN projects this week"
 ```
 
-The agent connects to the MCP server automatically via stdio.
+The agent spawns the MCP server automatically as a subprocess via stdio.
+
+### Remote mode (server on a different machine)
+
+Start the server on the remote machine, binding to all network interfaces:
+
+```bash
+# On the remote machine (replace 8000 with your preferred port)
+uv run src/hn_pulse/server.py http --host 0.0.0.0 --port 8000
+```
+
+Then point the agent at it using `MCP_SERVER_URL`:
+
+```bash
+# On the client machine
+export MCP_SERVER_URL=http://<remote-ip>:8000/mcp/
+python agent/agent.py "What's trending on HN today?"
+```
+
+The agent automatically switches from stdio to HTTP transport when `MCP_SERVER_URL` is set — no code changes needed. The MCP endpoint is always at `/mcp/`.
 
 ---
 
