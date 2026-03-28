@@ -453,6 +453,257 @@
     .cat-dx      { color: #3fb950; }
     .cat-context { color: #ffa657; }
     .cat-security{ color: #f85149; }
+
+    /* ══ EVALS SECTION ══════════════════════════════ */
+
+    /* Testing pyramid */
+    .pyramid-row {
+      max-width: 1100px;
+      margin: 28px auto 0;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+    .pyramid-tier {
+      border-radius: 12px;
+      padding: 18px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      border: 1px solid;
+      position: relative;
+      overflow: hidden;
+    }
+    .pyramid-tier::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+    }
+    .tier-unit { background: #161b22; border-color: #3fb95033; }
+    .tier-unit::before { background: #3fb950; }
+    .tier-int  { background: #161b22; border-color: #58a6ff33; }
+    .tier-int::before  { background: #58a6ff; }
+    .tier-eval { background: #161b22; border-color: #a371f733; }
+    .tier-eval::before { background: #a371f7; }
+
+    .tier-label {
+      font-size: 0.65rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .tier-unit .tier-label { color: #3fb950; }
+    .tier-int  .tier-label { color: #58a6ff; }
+    .tier-eval .tier-label { color: #a371f7; }
+
+    .tier-title { font-size: 1rem; font-weight: 700; color: #e6edf3; }
+    .tier-stats {
+      display: flex;
+      gap: 14px;
+      margin-top: 4px;
+      flex-wrap: wrap;
+    }
+    .tier-stat {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+    .tier-stat-val {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #e6edf3;
+    }
+    .tier-stat-key {
+      font-size: 0.63rem;
+      color: #6e7681;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .tier-desc {
+      font-size: 0.72rem;
+      color: #8b949e;
+      line-height: 1.6;
+      margin-top: 4px;
+      border-top: 1px solid #21262d;
+      padding-top: 8px;
+    }
+    .tier-desc code {
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 3px;
+      padding: 1px 5px;
+      font-size: 0.67rem;
+      color: #ffa657;
+      font-family: 'Cascadia Code', 'Fira Code', monospace;
+    }
+
+    /* Eval cases table */
+    .eval-table-wrap {
+      max-width: 1100px;
+      margin: 32px auto 0;
+      background: #161b22;
+      border: 1px solid #21262d;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .eval-table-header {
+      padding: 14px 20px;
+      border-bottom: 1px solid #21262d;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .eval-table-header h3 {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #e6edf3;
+    }
+    .eval-table-header p {
+      font-size: 0.72rem;
+      color: #6e7681;
+      margin-left: auto;
+    }
+    .eval-badge {
+      font-size: 0.62rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 20px;
+      background: #2d1f5e;
+      color: #a371f7;
+      border: 1px solid #a371f744;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    table.eval-cases {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    table.eval-cases thead tr {
+      background: #0d1117;
+    }
+    table.eval-cases th {
+      padding: 9px 16px;
+      font-size: 0.67rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: #6e7681;
+      text-align: left;
+      border-bottom: 1px solid #21262d;
+    }
+    table.eval-cases td {
+      padding: 9px 16px;
+      font-size: 0.73rem;
+      color: #8b949e;
+      border-bottom: 1px solid #161b22;
+      vertical-align: middle;
+    }
+    table.eval-cases tr:last-child td { border-bottom: none; }
+    table.eval-cases tr:hover td { background: #1c2128; }
+    .query-cell { color: #c9d1d9; font-style: italic; }
+    .tool-chip-inline {
+      display: inline-block;
+      background: #1c2128;
+      border: 1px solid #30363d;
+      border-radius: 5px;
+      padding: 2px 8px;
+      font-size: 0.68rem;
+      color: #ffa657;
+      font-family: 'Cascadia Code', 'Fira Code', monospace;
+      white-space: nowrap;
+    }
+    .reason-cell { font-size: 0.67rem; color: #6e7681; }
+    .pass-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: #3fb950;
+      display: inline-block;
+      box-shadow: 0 0 6px #3fb95066;
+    }
+
+    /* Integration assertions */
+    .assertion-grid {
+      max-width: 1100px;
+      margin: 28px auto 0;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 14px;
+    }
+    .assertion-card {
+      background: #161b22;
+      border: 1px solid #21262d;
+      border-radius: 10px;
+      padding: 16px 18px;
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+    }
+    .assertion-icon {
+      font-size: 1.4rem;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .assertion-body {}
+    .assertion-title {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: #e6edf3;
+      margin-bottom: 5px;
+    }
+    .assertion-desc {
+      font-size: 0.71rem;
+      color: #8b949e;
+      line-height: 1.6;
+    }
+    .assertion-desc code {
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 3px;
+      padding: 1px 5px;
+      font-size: 0.67rem;
+      color: #ffa657;
+      font-family: 'Cascadia Code', 'Fira Code', monospace;
+    }
+
+    /* Unit test coverage */
+    .unit-grid {
+      max-width: 1100px;
+      margin: 28px auto 0;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+    }
+    .unit-file-card {
+      background: #161b22;
+      border: 1px solid #21262d;
+      border-radius: 10px;
+      padding: 14px 16px;
+    }
+    .unit-file-name {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: #ffa657;
+      font-family: 'Cascadia Code', 'Fira Code', monospace;
+      margin-bottom: 8px;
+    }
+    .unit-case {
+      font-size: 0.68rem;
+      color: #6e7681;
+      padding: 3px 0;
+      border-bottom: 1px solid #1c2128;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      line-height: 1.5;
+    }
+    .unit-case:last-child { border-bottom: none; }
+    .unit-case::before {
+      content: '';
+      width: 5px; height: 5px;
+      border-radius: 50%;
+      background: #3fb95066;
+      flex-shrink: 0;
+    }
   </style>
 </head>
 <body>
@@ -488,30 +739,31 @@
         <span class="box-title">Research Agent</span>
         <span class="box-name">agent/agent.py</span>
         <span class="box-detail">
-          Anthropic SDK · claude-sonnet<br/>
-          Agentic tool-use loop<br/>
-          Rich CLI output · message accumulation
+          LangGraph ReAct · claude-sonnet<br/>
+          MemorySaver — conversation state across turns<br/>
+          MultiServerMCPClient — connects to both MCP servers<br/>
+          --output / --json · Interactive · One-shot
         </span>
-        <span class="tag">Anthropic API</span>
+        <span class="tag">LangGraph + langchain-mcp-adapters</span>
       </div>
     </div>
 
     <!-- bidirectional MCP -->
     <div class="bidir-row">
-      <span class="bidir-label">stdio · JSON-RPC 2.0</span>
+      <span class="bidir-label">stdio (local) · streamable_http (remote)</span>
       <div class="bidir-arrow">
         <div class="bidir-arrow-line"></div>
       </div>
-      <span class="bidir-label">MCP Protocol</span>
+      <span class="bidir-label">MCP Protocol · JSON-RPC 2.0</span>
     </div>
 
-    <!-- ── LAYER 3: MCP SERVER ── -->
+    <!-- ── LAYER 3: MCP SERVERS ── -->
     <div class="section-label">MCP Server Layer</div>
-    <div class="layer">
+    <div class="layer" style="gap:14px; align-items:flex-start;">
       <div class="box server-box">
-        <span class="box-title">MCP Server · arcade-mcp</span>
+        <span class="box-title">HN Pulse MCP Server · arcade-mcp</span>
         <span class="box-name">src/hn_pulse/server.py</span>
-        <span class="box-detail">MCPApp · stdio transport · subprocess spawn · 8 tools registered</span>
+        <span class="box-detail">MCPApp · stdio or HTTP · 8 tools · asyncio.gather item fetches</span>
         <span class="tag">arcade-mcp-server</span>
 
         <div class="tools-row" style="margin-top:12px;">
@@ -546,6 +798,20 @@
           <div class="tool-chip">
             <span class="chip-name">get_show_hn</span>
             <span class="chip-api">Firebase /v0/showstories</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="box server-box" style="min-width:220px; max-width:260px;">
+        <span class="box-title">HN Fetch MCP Server</span>
+        <span class="box-name">src/hn_extras/server.py</span>
+        <span class="box-detail">MCPApp · stdio or HTTP · 1 tool · HTML → plain text</span>
+        <span class="tag">ENABLE_FETCH=1</span>
+
+        <div class="tools-row" style="margin-top:12px;">
+          <div class="tool-chip">
+            <span class="chip-name">fetch_article</span>
+            <span class="chip-api">Any URL · stdlib parser</span>
           </div>
         </div>
       </div>
@@ -595,9 +861,9 @@
     <div class="flow-card">
       <h3 style="color:#a371f7;">② Tool Selection</h3>
       <p>
-        Claude returns <code>stop_reason: tool_use</code>. The agent
-        extracts each <code>tool_use</code> block and routes it to the
-        MCP server via the stdio transport.
+        LangGraph's ReAct loop calls <code>create_react_agent</code>.
+        Claude decides which tool(s) to call. <code>MultiServerMCPClient</code>
+        routes each call to the correct MCP server — local stdio or remote HTTP.
       </p>
     </div>
 
@@ -611,11 +877,12 @@
     </div>
 
     <div class="flow-card">
-      <h3 style="color:#3fb950;">④ Response & Loop</h3>
+      <h3 style="color:#3fb950;">④ Response &amp; Memory</h3>
       <p>
-        Tool results are appended as <code>tool_result</code> blocks.
-        Claude synthesises the answer. Loop continues until
-        <code>stop_reason: end_turn</code>.
+        Tool results flow back through the LangGraph graph.
+        <code>MemorySaver</code> checkpoints state after each turn —
+        the agent remembers context across the full interactive session.
+        Final answer printed via <code>rich</code> or saved to file / JSON.
       </p>
     </div>
 
@@ -629,7 +896,7 @@
     </div>
     <div class="legend-item">
       <div class="legend-dot" style="background:#a371f744; border:1px solid #a371f7;"></div>
-      Agent (Anthropic SDK)
+      Agent (LangGraph + MCP)
     </div>
     <div class="legend-item">
       <div class="legend-dot" style="background:#ff6e2e44; border:1px solid #ff6e2e;"></div>
@@ -645,6 +912,273 @@
     </div>
   </div>
 
+
+  <!-- ══════════════════════════════════════════════
+       EVALS & TESTING
+  ══════════════════════════════════════════════ -->
+  <hr class="section-divider" />
+  <div class="section-divider-label">
+    <h2>Evals &amp; Testing</h2>
+    <p>Three tiers — each catching a different class of failure, at a different cost.</p>
+  </div>
+
+  <!-- Testing pyramid stats -->
+  <div class="pyramid-row">
+
+    <div class="pyramid-tier tier-unit">
+      <span class="tier-label">Tier 1</span>
+      <span class="tier-title">Unit Tests</span>
+      <div class="tier-stats">
+        <div class="tier-stat"><span class="tier-stat-val">48</span><span class="tier-stat-key">Tests</span></div>
+        <div class="tier-stat"><span class="tier-stat-val">$0</span><span class="tier-stat-key">Cost</span></div>
+        <div class="tier-stat"><span class="tier-stat-val">~0.5s</span><span class="tier-stat-key">Runtime</span></div>
+      </div>
+      <p class="tier-desc">
+        Pure tool functions called directly — no MCPApp, no server bootstrap.
+        HTTP intercepted at transport layer via <code>pytest-httpx</code>.
+        Includes 12 error-scenario tests (HTTP 503, null bodies, malformed JSON, rate limits)
+        and 7 tests for the <code>fetch_article</code> tool.
+        Run any time: <code>pytest tests/unit/ -v</code>
+      </p>
+    </div>
+
+    <div class="pyramid-tier tier-int">
+      <span class="tier-label">Tier 2</span>
+      <span class="tier-title">Integration Tests</span>
+      <div class="tier-stats">
+        <div class="tier-stat"><span class="tier-stat-val">3</span><span class="tier-stat-key">Tests</span></div>
+        <div class="tier-stat"><span class="tier-stat-val">$0</span><span class="tier-stat-key">Cost</span></div>
+        <div class="tier-stat"><span class="tier-stat-val">~4s</span><span class="tier-stat-key">Runtime</span></div>
+      </div>
+      <p class="tier-desc">
+        Spawns the real <code>server.py</code> subprocess via
+        <code>StdioServerParameters</code>. Performs full MCP handshake.
+        Asserts tool count, descriptions, and JSON schema shapes.
+        Run with: <code>pytest tests/integration/ -v</code>
+      </p>
+    </div>
+
+    <div class="pyramid-tier tier-eval">
+      <span class="tier-label">Tier 3</span>
+      <span class="tier-title">Eval Tests</span>
+      <div class="tier-stats">
+        <div class="tier-stat"><span class="tier-stat-val">10</span><span class="tier-stat-key">Cases</span></div>
+        <div class="tier-stat"><span class="tier-stat-val">~$0.002</span><span class="tier-stat-key">Cost</span></div>
+        <div class="tier-stat"><span class="tier-stat-val">~15s</span><span class="tier-stat-key">Runtime</span></div>
+      </div>
+      <p class="tier-desc">
+        Real Anthropic API calls using <code>claude-haiku-4-5</code>.
+        <code>tool_choice: any</code> forces tool use — no free-text hedging.
+        Validates <em>Claude's tool-selection accuracy</em>, not just code logic.
+        Run with: <code>pytest tests/evals/ -m eval -v</code>
+      </p>
+    </div>
+
+  </div>
+
+  <!-- Eval cases table -->
+  <div class="eval-table-wrap">
+    <div class="eval-table-header">
+      <h3>Eval Cases — Tool Selection Accuracy</h3>
+      <span class="eval-badge">claude-haiku-4-5</span>
+      <p>10 / 10 passing</p>
+    </div>
+    <table class="eval-cases">
+      <thead>
+        <tr>
+          <th style="width:36px">#</th>
+          <th>Natural Language Query</th>
+          <th>Expected Tool</th>
+          <th>Reasoning</th>
+          <th style="width:48px; text-align:center;">Pass</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td style="color:#6e7681;">1</td>
+          <td class="query-cell">"What's currently trending on Hacker News?"</td>
+          <td><span class="tool-chip-inline">get_top_stories</span></td>
+          <td class="reason-cell">trending = top stories</td>
+          <td style="text-align:center;"><span class="pass-dot"></span></td>
+        </tr>
+        <tr>
+          <td style="color:#6e7681;">2</td>
+          <td class="query-cell">"Show me the hottest stories right now"</td>
+          <td><span class="tool-chip-inline">get_top_stories</span></td>
+          <td class="reason-cell">hot = top stories</td>
+          <td style="text-align:center;"><span class="pass-dot"></span></td>
+        </tr>
+        <tr>
+          <td style="color:#6e7681;">3</td>
+          <td class="query-cell">"What are the newest submissions on HN?"</td>
+          <td><span class="tool-chip-inline">get_new_stories</span></td>
+          <td class="reason-cell">newest = new stories</td>
+          <td style="text-align:center;"><span class="pass-dot"></span></td>
+        </tr>
+        <tr>
+          <td style="color:#6e7681;">4</td>
+          <td class="query-cell">"Get the most recently posted stories"</td>
+          <td><span class="tool-chip-inline">get_new_stories</span></td>
+          <td class="reason-cell">recent = new stories</td>
+          <td style="text-align:center;"><span class="pass-dot"></span></td>
+        </tr>
+        <tr>
+          <td style="color:#6e7681;">5</td>
+          <td class="query-cell">"What are people saying about Rust programming language?"</td>
+          <td><span class="tool-chip-inline">search_stories</span></td>
+          <td class="reason-cell">opinion query = search</td>
+          <td style="text-align:center;"><span class="pass-dot"></span></td>
+        </tr>
+        <tr>
+          <td style="color:#6e7681;">6</td>
+          <td class="query-cell">"Search for articles about large language models"</td>
+          <td><span class="tool-chip-inline">search_stories</span></td>
+          <td class="reason-cell">explicit search</td>
+          <td style="text-align:center;"><span class="pass-dot"></span></td>
+        </tr>
+        <tr>
+          <td style="color:#6e7681;">7</td>
+          <td class="query-cell">"Find current job postings on Hacker News"</td>
+          <td><span class="tool-chip-inline">get_job_listings</span></td>
+          <td class="reason-cell">explicit job intent</td>
+          <td style="text-align:center;"><span class="pass-dot"></span></td>
+        </tr>
+        <tr>
+          <td style="color:#6e7681;">8</td>
+          <td class="query-cell">"What questions is the HN community asking this week?"</td>
+          <td><span class="tool-chip-inline">get_ask_hn</span></td>
+          <td class="reason-cell">questions = ask hn</td>
+          <td style="text-align:center;"><span class="pass-dot"></span></td>
+        </tr>
+        <tr>
+          <td style="color:#6e7681;">9</td>
+          <td class="query-cell">"Show me what people are building and launching on HN"</td>
+          <td><span class="tool-chip-inline">get_show_hn</span></td>
+          <td class="reason-cell">builds/launches = show hn</td>
+          <td style="text-align:center;"><span class="pass-dot"></span></td>
+        </tr>
+        <tr>
+          <td style="color:#6e7681;">10</td>
+          <td class="query-cell">"What is user pg's karma and about section?"</td>
+          <td><span class="tool-chip-inline">get_user_profile</span></td>
+          <td class="reason-cell">named user lookup</td>
+          <td style="text-align:center;"><span class="pass-dot"></span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Integration test assertions -->
+  <div class="section-divider-label" style="margin-top: 36px; padding-top: 0;">
+    <h2 style="font-size: 1rem; color: #8b949e; font-weight: 600;">Integration Assertions (3 tests)</h2>
+  </div>
+  <div class="assertion-grid">
+    <div class="assertion-card">
+      <span class="assertion-icon">🔌</span>
+      <div class="assertion-body">
+        <div class="assertion-title">All 8 tools registered</div>
+        <div class="assertion-desc">
+          Spawns <code>server.py</code> as subprocess, connects via
+          <code>StdioServerParameters</code>, calls <code>list_tools()</code>.
+          Asserts the exact set <code>HnPulse_GetTopStories</code> …
+          <code>HnPulse_GetShowHn</code> — no more, no less. Catches
+          silent registration failures that unit tests can't see.
+        </div>
+      </div>
+    </div>
+    <div class="assertion-card">
+      <span class="assertion-icon">📝</span>
+      <div class="assertion-body">
+        <div class="assertion-title">Every tool has a description &gt; 10 chars</div>
+        <div class="assertion-desc">
+          Iterates all registered tools and asserts
+          <code>tool.description</code> is non-empty and meaningful.
+          A missing or trivial description causes Claude to mis-select
+          tools — caught here before it reaches an eval or prod.
+        </div>
+      </div>
+    </div>
+    <div class="assertion-card">
+      <span class="assertion-icon">📐</span>
+      <div class="assertion-body">
+        <div class="assertion-title">All schemas are valid <code>type: object</code></div>
+        <div class="assertion-desc">
+          Asserts each tool's <code>inputSchema</code> is present and
+          has <code>"type": "object"</code> at root — the MCP protocol
+          requirement. A malformed schema causes silent tool-call
+          failures in any MCP client.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Unit test coverage by file -->
+  <div class="section-divider-label" style="margin-top: 36px; padding-top: 0;">
+    <h2 style="font-size: 1rem; color: #8b949e; font-weight: 600;">Unit Test Coverage (48 tests across 7 modules)</h2>
+  </div>
+  <div class="unit-grid">
+    <div class="unit-file-card">
+      <div class="unit-file-name">test_stories.py</div>
+      <div class="unit-case">returns correct story count</div>
+      <div class="unit-case">clamps count to max 30</div>
+      <div class="unit-case">clamps count to min 1</div>
+      <div class="unit-case">filters null items</div>
+      <div class="unit-case">new stories returns correctly</div>
+      <div class="unit-case">new stories clamps count</div>
+    </div>
+    <div class="unit-file-card">
+      <div class="unit-file-name">test_item.py</div>
+      <div class="unit-case">returns story with comments</div>
+      <div class="unit-case">filters deleted comments</div>
+      <div class="unit-case">filters dead comments</div>
+      <div class="unit-case">respects max_comments limit</div>
+      <div class="unit-case">include_replies fetches children</div>
+      <div class="unit-case">handles missing story gracefully</div>
+    </div>
+    <div class="unit-file-card">
+      <div class="unit-file-name">test_search.py</div>
+      <div class="unit-case">returns cleaned hit fields</div>
+      <div class="unit-case">strips _highlightResult</div>
+      <div class="unit-case">strips children &amp; _tags</div>
+      <div class="unit-case">sort_by=date passes param</div>
+      <div class="unit-case">tags filter forwarded</div>
+      <div class="unit-case">pagination page param</div>
+    </div>
+    <div class="unit-file-card">
+      <div class="unit-file-name">test_users.py</div>
+      <div class="unit-case">returns user profile fields</div>
+      <div class="unit-case">handles missing about text</div>
+      <div class="unit-case">include_submissions=True</div>
+      <div class="unit-case">truncates submissions to 10</div>
+      <div class="unit-case">handles unknown user (null)</div>
+    </div>
+    <div class="unit-file-card">
+      <div class="unit-file-name">test_specials.py</div>
+      <div class="unit-case">job listings returns items</div>
+      <div class="unit-case">ask_hn returns items</div>
+      <div class="unit-case">show_hn returns items</div>
+      <div class="unit-case">clamps count on all specials</div>
+      <div class="unit-case">filters null items</div>
+    </div>
+    <div class="unit-file-card">
+      <div class="unit-file-name">test_error_scenarios.py</div>
+      <div class="unit-case">HTTP 503/500 on feed endpoints</div>
+      <div class="unit-case">item fetch 404 / null body</div>
+      <div class="unit-case">malformed JSON response</div>
+      <div class="unit-case">gather failure-rate logging</div>
+      <div class="unit-case">Algolia 429 rate limit</div>
+      <div class="unit-case">null / missing user profile</div>
+    </div>
+    <div class="unit-file-card">
+      <div class="unit-file-name">test_fetch.py</div>
+      <div class="unit-case">fetch article returns body</div>
+      <div class="unit-case">strips script / style / nav</div>
+      <div class="unit-case">truncates at max_chars</div>
+      <div class="unit-case">HTTP error returns error dict</div>
+      <div class="unit-case">handles plain text response</div>
+      <div class="unit-case">_extract_text unit tests</div>
+    </div>
+  </div>
 
   <!-- ══════════════════════════════════════════════
        DESIGN TRADE-OFFS & DECISIONS
@@ -785,7 +1319,7 @@
       <div class="tradeoff-body">
         <div class="tradeoff-row">
           <span class="tradeoff-pill pill-chose">Chose</span>
-          <span class="tradeoff-text"><strong>Unit</strong> (29, $0, 0.3s) + <strong>Integration</strong> (3, $0, ~4s) + <strong>Evals</strong> (10, ~$0.002, ~15s). Evals use <code>claude-haiku</code> to validate Claude's tool-selection accuracy.</span>
+          <span class="tradeoff-text"><strong>Unit</strong> (48, $0, ~0.5s) + <strong>Integration</strong> (3, $0, ~4s) + <strong>Evals</strong> (10, ~$0.002, ~15s). Unit tests include 12 error-scenario tests and 7 fetch tool tests. Evals use <code>claude-haiku</code> to validate Claude's tool-selection accuracy.</span>
         </div>
         <div class="tradeoff-row">
           <span class="tradeoff-pill pill-rejected">Skipped</span>
@@ -807,26 +1341,26 @@
       <div class="tradeoff-header">
         <span class="tradeoff-icon">🔁</span>
         <div class="tradeoff-header-text">
-          <div class="tradeoff-title">Explicit agentic loop over SDK helpers</div>
+          <div class="tradeoff-title">LangGraph ReAct over hand-rolled agentic loop</div>
           <div class="tradeoff-category cat-arch">Architecture</div>
         </div>
       </div>
       <div class="tradeoff-body">
         <div class="tradeoff-row">
           <span class="tradeoff-pill pill-chose">Chose</span>
-          <span class="tradeoff-text">Hand-written <code>while True</code> loop: send → check <code>stop_reason</code> → collect <code>tool_use</code> blocks → call MCP → append <code>tool_result</code> → repeat.</span>
+          <span class="tradeoff-text"><code>create_react_agent</code> from LangGraph with <code>langchain-mcp-adapters</code>. <code>MemorySaver</code> checkpointer persists conversation state. <code>MultiServerMCPClient</code> bridges MCP tools into the LangGraph graph automatically.</span>
         </div>
         <div class="tradeoff-row">
           <span class="tradeoff-pill pill-rejected">Skipped</span>
-          <span class="tradeoff-text">Beta <code>tool_runner()</code> helper — adds an opaque abstraction over message accumulation and tool dispatch.</span>
+          <span class="tradeoff-text">Hand-written <code>while True</code> loop: ~60 lines of message accumulation, <code>stop_reason</code> checks, tool dispatch boilerplate — valid but re-invents what LangGraph already provides.</span>
         </div>
         <div class="tradeoff-row">
           <span class="tradeoff-pill pill-why">Why</span>
-          <span class="tradeoff-text">~30 lines, fully debuggable. Message accumulation is <strong>explicit and visible</strong> — critical when diagnosing why a token budget is being exceeded. Engineers reading the code see exactly how context grows across turns.</span>
+          <span class="tradeoff-text">LangGraph is the framework ArcadeAI reference projects use. <code>create_react_agent</code> handles the loop, message accumulation, and tool dispatch. <code>MemorySaver + thread_id</code> gives the agent <strong>persistent session memory</strong> across turns for free — the hand-rolled loop had none.</span>
         </div>
         <div class="tradeoff-row">
           <span class="tradeoff-pill pill-cost">Trade-off</span>
-          <span class="tradeoff-text">More boilerplate than a helper. Accepted — the clarity benefit in a teaching/demo codebase outweighs brevity.</span>
+          <span class="tradeoff-text">Heavier dependency footprint (langgraph, langchain-anthropic, langchain-mcp-adapters). Accepted — these are maintained, well-tested packages; the hand-rolled loop was maintenance burden with no state support.</span>
         </div>
       </div>
     </div>
@@ -885,6 +1419,93 @@
         <div class="tradeoff-row">
           <span class="tradeoff-pill pill-cost">Trade-off</span>
           <span class="tradeoff-text">Redundant upstream calls in multi-turn sessions. Next iteration: <code>cachetools.TTLCache</code> with 60s TTL on feed ID lists, 5m on item details.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 9 -->
+    <div class="tradeoff-card">
+      <div class="tradeoff-header">
+        <span class="tradeoff-icon">💾</span>
+        <div class="tradeoff-header-text">
+          <div class="tradeoff-title">Conversation state via <code>MemorySaver</code></div>
+          <div class="tradeoff-category cat-arch">Architecture</div>
+        </div>
+      </div>
+      <div class="tradeoff-body">
+        <div class="tradeoff-row">
+          <span class="tradeoff-pill pill-chose">Chose</span>
+          <span class="tradeoff-text">LangGraph's <code>MemorySaver</code> checkpointer + UUID <code>thread_id</code> per session. Interactive mode reuses one thread — the agent remembers what it said earlier. One-shot mode creates a fresh thread per invocation.</span>
+        </div>
+        <div class="tradeoff-row">
+          <span class="tradeoff-pill pill-rejected">Skipped</span>
+          <span class="tradeoff-text">No state — every turn starts from scratch. The hand-rolled loop had this limitation: context was only maintained within a single <code>messages</code> list in memory, lost on restart.</span>
+        </div>
+        <div class="tradeoff-row">
+          <span class="tradeoff-pill pill-why">Why</span>
+          <span class="tradeoff-text">A research assistant that forgets your previous question is not useful in practice. <code>MemorySaver</code> adds full conversation memory at zero infrastructure cost — no database, no external service. Swappable for <code>SqliteSaver</code> for persistence across restarts.</span>
+        </div>
+        <div class="tradeoff-row">
+          <span class="tradeoff-pill pill-cost">Trade-off</span>
+          <span class="tradeoff-text">In-memory only — state is lost when the process exits. Accepted for v1; <code>SqliteSaver</code> is a one-line swap for durable persistence.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 10 -->
+    <div class="tradeoff-card">
+      <div class="tradeoff-header">
+        <span class="tradeoff-icon">🔗</span>
+        <div class="tradeoff-header-text">
+          <div class="tradeoff-title">Multi-service: second MCP server for article fetching</div>
+          <div class="tradeoff-category cat-arch">Architecture</div>
+        </div>
+      </div>
+      <div class="tradeoff-body">
+        <div class="tradeoff-row">
+          <span class="tradeoff-pill pill-chose">Chose</span>
+          <span class="tradeoff-text">Separate <code>hn_fetch</code> MCPApp in <code>src/hn_extras/</code> with a single <code>fetch_article</code> tool. Opt-in via <code>ENABLE_FETCH=1</code>. <code>MultiServerMCPClient</code> connects to both servers simultaneously — local stdio or remote HTTP independently.</span>
+        </div>
+        <div class="tradeoff-row">
+          <span class="tradeoff-pill pill-rejected">Skipped</span>
+          <span class="tradeoff-text">Adding <code>fetch_article</code> directly to <code>hn_pulse/server.py</code> — simpler but couples URL fetching to the HN server. Introduces <code>httpx</code> calls to arbitrary external URLs in a server that should only talk to HN APIs.</span>
+        </div>
+        <div class="tradeoff-row">
+          <span class="tradeoff-pill pill-why">Why</span>
+          <span class="tradeoff-text">Separation of concerns: each server has one domain. The fetch server is deployable independently and reusable by other agents. <code>MultiServerMCPClient</code> makes connecting to N servers as simple as connecting to one.</span>
+        </div>
+        <div class="tradeoff-row">
+          <span class="tradeoff-pill pill-cost">Trade-off</span>
+          <span class="tradeoff-text">Two server processes to manage locally. Mitigated by Docker Compose for production deployment and <code>ENABLE_FETCH</code> flag to keep the default path simple.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 11 -->
+    <div class="tradeoff-card">
+      <div class="tradeoff-header">
+        <span class="tradeoff-icon">🚢</span>
+        <div class="tradeoff-header-text">
+          <div class="tradeoff-title">HTTP transport + Docker for remote deployment</div>
+          <div class="tradeoff-category cat-security">Security &amp; Transport</div>
+        </div>
+      </div>
+      <div class="tradeoff-body">
+        <div class="tradeoff-row">
+          <span class="tradeoff-pill pill-chose">Chose</span>
+          <span class="tradeoff-text">Both MCP servers expose <code>--host 0.0.0.0 --port N</code> HTTP transport. Agent switches from stdio to <code>streamable_http</code> automatically when <code>MCP_SERVER_URL</code> is set. <code>docker-compose.yml</code> deploys both as isolated containers with health checks.</span>
+        </div>
+        <div class="tradeoff-row">
+          <span class="tradeoff-pill pill-rejected">Skipped</span>
+          <span class="tradeoff-text">stdio-only deployment — ties the server process lifecycle to the client. Not deployable to a remote machine or cloud environment.</span>
+        </div>
+        <div class="tradeoff-row">
+          <span class="tradeoff-pill pill-why">Why</span>
+          <span class="tradeoff-text">Enables real multi-machine architectures: server on a cloud VM, agent on a laptop. Zero code changes — transport is environment-variable-driven. Docker gives reproducible deployment and health-checked startup ordering.</span>
+        </div>
+        <div class="tradeoff-row">
+          <span class="tradeoff-pill pill-cost">Trade-off</span>
+          <span class="tradeoff-text">HTTP transport has no built-in auth — the server is open on whatever port it binds to. Acceptable for private network / VPN use; add a reverse proxy with auth for public exposure.</span>
         </div>
       </div>
     </div>

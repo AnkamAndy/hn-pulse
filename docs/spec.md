@@ -29,7 +29,7 @@ The prompt enforces **spec-driven development**:
 | **Project** | HN Pulse |
 | **Purpose** | Expose the Hacker News public API as an MCP Server so any MCP-compatible AI assistant can query HN stories, search discussions, look up users, and find jobs via natural language |
 | **Framework** | arcade-mcp (scaffold with `arcade new hn_pulse`) |
-| **Agent** | Claude-powered CLI research agent (Anthropic SDK + MCP stdio transport) |
+| **Agent** | Claude-powered CLI research agent (LangGraph ReAct + langchain-mcp-adapters) |
 | **Primary API** | HN Firebase — `hacker-news.firebaseio.com/v0` |
 | **Search API** | Algolia HN Search — `hn.algolia.com/api/v1` |
 | **Auth** | None — both APIs are public and free |
@@ -45,7 +45,7 @@ These constraints encode architectural decisions that must not be "optimised awa
 | 1 | Tools **must** be plain `async def` functions — no `@app.tool` decorator. Register via `app.add_tool()` in `server.py` only. | Unit tests call tool functions directly without constructing an MCPApp. Decorating at import time couples every module to a live framework instance. |
 | 2 | All feed tools **must** use `asyncio.gather` for concurrent item fetches. | HN Firebase returns only ID arrays from feed endpoints. Sequential fetching = N+1 RTTs. `gather` collapses to 2 RTTs (~300ms vs ~3s for 10 stories). |
 | 3 | Algolia results **must** be cleaned before returning. Strip: `_highlightResult`, `children`, `_tags`, `updated_at`. Target: ~200 bytes/result (down from ~2KB raw). | 20 results = 36KB raw → 4KB clean. A 9× token reduction per search call. |
-| 4 | Transport **must** be stdio (subprocess spawn). No HTTP server, no open ports, no auth tokens on the wire. | Safest local transport. Process lifecycle tied to agent. How Claude Desktop integrates MCP servers natively. |
+| 4 | Default transport is stdio (subprocess spawn). HTTP transport (`app.run(transport="http")`) is supported for remote deployment — agent switches automatically when `MCP_SERVER_URL` is set. | stdio is safest for local use (no open ports). HTTP enables multi-machine deployment via Docker. |
 | 5 | No caching layer in v1. | Correctness over optimisation within the time constraint. |
 | 6 | Tests are mandatory in three tiers — see Section 5. | |
 | 7 | Python 3.10+. Package manager: `uv`. Linter: `ruff`. | |
@@ -132,30 +132,48 @@ src/hn_pulse/
   client.py      — hn_client() and algolia_client() factory functions
                    using httpx.AsyncClient. Single seam for pytest-httpx.
   server.py      — MCPApp("HnPulse"). Imports ALL_TOOLS. Calls
-                   app.add_tool(fn) for each. Stdio transport.
+                   app.add_tool(fn) for each. Stdio or HTTP transport.
+  types.py       — TypedDict definitions: Story, Comment, UserProfile,
+                   SearchHit, SearchResponse. Used by all tool return types.
   tools/
     __init__.py  — exports ALL_TOOLS: list of all 8 functions
+    common.py    — shared fetch_item, gather_items, all count constants
+                   (MAX_STORY_COUNT, MAX_COMMENTS, etc.)
     stories.py / item.py / search.py / users.py / specials.py
 
+src/hn_extras/
+  fetch.py       — fetch_article tool: HTML → plain text via stdlib parser
+  server.py      — MCPApp("hn_fetch"). Exposes fetch_article. Port 8001.
+
 agent/
-  agent.py       — Anthropic SDK explicit tool-use loop (NOT tool_runner()).
-                   Spawns server.py via StdioServerParameters.
-                   Interactive mode + one-shot mode (sys.argv[1]).
-                   Uses rich for output.
-                   Loop: send → check stop_reason → collect tool_use blocks
-                   → call via MCP → append tool_result → repeat until end_turn.
+  agent.py       — LangGraph ReAct agent using create_react_agent.
+                   MultiServerMCPClient: connects to hn_pulse + hn_fetch.
+                   MemorySaver + thread_id: conversation state across turns.
+                   Supports local stdio and remote HTTP (MCP_SERVER_URL env).
+                   --output <file> saves Markdown report.
+                   --json prints structured JSON payload.
+                   Interactive mode (stateful) + one-shot mode.
 
 .claude/
   commands/
     hn-research.md  — /hn-research: checks key, checks install, runs agent
     run-evals.md    — /run-evals: tier runner (unit|integration|eval)
+    mcp-builder.md  — /mcp-builder: guided workflow to build new MCP servers
+
+.github/
+  workflows/ci.yml — lint + typecheck + unit/integration on every PR;
+                     evals on push to main only (needs ANTHROPIC_API_KEY secret)
+
+Makefile           — make install/lint/typecheck/test/check/clean
+Dockerfile         — python:3.12-slim, non-root user, both MCP servers
+docker-compose.yml — hn-server (8000) + fetch-server (8001), health checks
 
 docs/
   spec.md              — this file
   systems-design.html  — interactive architecture diagram
 ```
 
-**Key architectural rule:** framework coupling happens in exactly one place (`server.py`). Every other file is plain Python.
+**Key architectural rule:** framework coupling happens in exactly one place (`server.py`). Every other file is plain Python. Tools are pure async functions registered via `app.add_tool()`.
 
 ---
 
@@ -173,6 +191,10 @@ docs/
   - `asyncio.gather` fires all item fetches (verify N mock calls registered)
   - Algolia `sort_by` routes to correct endpoint
   - user `submitted` list truncated to 10
+  - HTTP 503/500 on feed endpoints raises `HTTPStatusError`
+  - item fetch 404 / null body / malformed JSON returns `None` (does not raise)
+  - `gather_items` logs failure count when items unavailable
+  - `fetch_article` strips HTML, truncates, handles HTTP errors gracefully
 
 ### Tier 2 — Integration tests (`tests/integration/`) — `$0 · 3–5s` — `@pytest.mark.integration`
 
@@ -211,11 +233,18 @@ Implementation is not complete until **all** of the following pass:
 
 ```
 [ ] arcade new hn_pulse scaffolds without error
-[ ] uv pip install -e ".[agent,dev]" succeeds with no conflicts
-[ ] pytest -m "not eval" -v  →  all unit + integration tests pass
+[ ] uv sync --all-extras succeeds with no conflicts (creates venv automatically)
+[ ] pytest -m "not eval" -v  →  ≥ 51 tests pass (unit + integration)
 [ ] pytest -m eval -v        →  ≥ 9/10 eval cases pass
 [ ] python agent/agent.py "What is trending on HN?"
       returns a synthesised answer using at least one tool call
+[ ] python agent/agent.py "What is trending?" --json
+      prints valid JSON with query, answer, tools_used, timestamp fields
+[ ] ENABLE_FETCH=1 python agent/agent.py "Fetch the top HN story"
+      agent connects to both MCP servers and uses fetch_article tool
+[ ] pytest -m "not eval" -v  →  ≥ 51 tests pass (unit + integration)
+[ ] docker compose up --build  →  both services healthy on ports 8000 and 8001
+[ ] CI workflow passes on GitHub Actions (lint + typecheck + tests)
 [ ] /hn-research skill: running without ANTHROPIC_API_KEY prints
       a clear fix instruction and exits non-zero
 [ ] /run-evals unit: runs unit tier only and exits 0
@@ -234,17 +263,20 @@ Follow this order exactly. State what was completed and what comes next after ea
 | Step | Action | Verification |
 |------|--------|-------------|
 | 1 | Scaffold: `arcade new hn_pulse` | Inspect generated files; note actual package name |
-| 2 | Update `pyproject.toml` — add optional deps, pytest markers, `asyncio_mode = "auto"` | `uv pip install -e ".[agent,dev]"` exits 0 |
-| 3 | Implement `client.py` + all 8 tool functions | `ruff check src/` — zero errors |
-| 4 | Implement `server.py` — wire ALL_TOOLS | `python src/hn_pulse/server.py` starts silently |
-| 5 | Write + run unit tests | `pytest tests/unit/ -v` — all pass |
+| 2 | Update `pyproject.toml` — add optional deps, pytest markers, `asyncio_mode = "auto"`, strict mypy | `uv sync --all-extras` exits 0 |
+| 3 | Implement `client.py`, `types.py`, `tools/common.py`, all 8 tool functions | `ruff check src/` — zero errors; `mypy src/` — zero errors |
+| 4 | Implement `server.py` — wire ALL_TOOLS | `python src/hn_pulse/server.py stdio` starts silently |
+| 5 | Write unit tests (happy path + error scenarios) | `pytest tests/unit/ -v` — all pass |
 | 6 | Write + run integration tests | `pytest -m integration -v` — all pass |
-| 7 | Implement `agent/agent.py` | `python agent/agent.py "What is trending?"` returns answer |
-| 8 | Write + run eval tests | `pytest -m eval -v` — ≥ 9/10 pass |
-| 9 | Write Claude Code skills | `/hn-research` and `/run-evals` skills work correctly |
-| 10 | Write README + `docs/systems-design.html` | All required README sections present |
-| 11 | Run full acceptance criteria checklist | Every item in Section 6 checks off |
-| 12 | Commit + push (specific files only, no `git add -A`) | `git log` shows clean history |
+| 7 | Implement `src/hn_extras/fetch.py` + `server.py` | `pytest tests/unit/test_fetch.py -v` — all pass |
+| 8 | Rewrite `agent/agent.py` with LangGraph + MultiServerMCPClient + MemorySaver | `python agent/agent.py "What is trending?"` returns answer; `--json` flag prints valid JSON |
+| 9 | Write + run eval tests | `pytest -m eval -v` — ≥ 9/10 pass |
+| 10 | Add `.github/workflows/ci.yml` + `Makefile` + `.pre-commit-config.yaml` | `make check` exits 0 |
+| 11 | Add `Dockerfile` + `docker-compose.yml` | `docker compose up --build` — both services healthy |
+| 12 | Write Claude Code skills | `/hn-research`, `/run-evals`, `/mcp-builder` skills work |
+| 13 | Write README + `docs/systems-design.html` + `docs/spec.md` | All required sections present |
+| 14 | Run full acceptance criteria checklist | Every item in Section 6 checks off |
+| 15 | Commit + push (specific files only, no `git add -A`) | `git log` shows clean history; CI passes on GitHub |
 
 ---
 
@@ -292,8 +324,9 @@ SECTION 2 — HARD CONSTRAINTS
    Strip: _highlightResult, children, _tags, updated_at.
    Target: ~200 bytes/result (down from ~2KB raw).
 
-4. Transport MUST be stdio (subprocess spawn).
-   No HTTP server, no open ports, no auth tokens on the wire.
+4. Default transport is stdio (subprocess spawn) for local use.
+   HTTP transport is supported for remote deployment — set MCP_SERVER_URL
+   to switch the agent from stdio to streamable_http automatically.
 
 5. No caching layer in v1. Correctness over optimization.
 
@@ -374,12 +407,12 @@ src/hn_pulse/
     stories.py / item.py / search.py / users.py / specials.py
 
 agent/
-  agent.py       — Anthropic SDK explicit tool-use loop (NOT tool_runner()).
-                   Spawns server.py as subprocess via StdioServerParameters.
-                   Supports interactive mode and one-shot mode (sys.argv[1]).
-                   Uses rich for output. Accumulates messages across turns.
-                   Loop: send → check stop_reason → collect tool_use blocks
-                   → call via MCP → append tool_result → repeat until end_turn.
+  agent.py       — LangGraph ReAct agent using create_react_agent.
+                   MultiServerMCPClient: hn_pulse (always) + hn_fetch (ENABLE_FETCH=1).
+                   MemorySaver + thread_id: persistent conversation memory.
+                   Local stdio or remote HTTP (MCP_SERVER_URL env var).
+                   --output <file> saves Markdown report; --json prints JSON payload.
+                   Interactive mode (stateful) + one-shot mode.
 
 .claude/
   commands/
@@ -451,7 +484,7 @@ The plan is complete and implementation may begin only when ALL of
 the following are satisfiable:
 
 [ ] arcade new hn_pulse scaffolds without error
-[ ] uv pip install -e ".[agent,dev]" succeeds with no conflicts
+[ ] uv sync --all-extras succeeds with no conflicts
 [ ] pytest -m "not eval" -v → all unit + integration tests pass
 [ ] pytest -m eval -v → ≥ 9/10 eval cases pass
 [ ] python agent/agent.py "What is trending on HN?" returns
@@ -495,9 +528,11 @@ Step 6 — Integration tests
   Write integration tests. Run pytest -m integration -v.
   Confirm tool name prefixing matches actual arcade-mcp behaviour.
 
-Step 7 — agent/agent.py
-  Explicit tool-use loop. Interactive + one-shot modes.
+Step 7 — agent/agent.py (LangGraph)
+  create_react_agent + MultiServerMCPClient + MemorySaver.
+  Interactive (stateful) + one-shot (fresh thread per invocation).
   Test: python agent/agent.py "What is trending on HN today?"
+  Test: python agent/agent.py "What is trending?" --json
 
 Step 8 — Eval tests
   Write 10 parametrized eval cases. Run pytest -m eval -v.
