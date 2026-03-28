@@ -1,45 +1,36 @@
 """Top and new story feed tools."""
 
-import asyncio
+import logging
 from typing import Annotated
 
-import httpx
-
 from hn_pulse.client import hn_client
+from hn_pulse.tools.common import MAX_STORY_COUNT, fetch_item, gather_items
+from hn_pulse.types import Story
 
-
-async def _fetch_item(client: httpx.AsyncClient, item_id: int) -> dict | None:
-    """Fetch a single HN item by ID; returns None on error or missing item."""
-    try:
-        r = await client.get(f"/item/{item_id}.json")
-        if r.status_code == 200:
-            return r.json()
-    except httpx.HTTPError:
-        pass
-    return None
+logger = logging.getLogger(__name__)
 
 
 async def get_top_stories(
     count: Annotated[int, "Number of top stories to return (1-30)"] = 10,
-) -> list[dict]:
+) -> list[Story]:
     """Fetch the current top stories from Hacker News, ranked by score and recency."""
-    count = max(1, min(count, 30))
+    count = max(1, min(count, MAX_STORY_COUNT))
     async with hn_client() as client:
         r = await client.get("/topstories.json")
         r.raise_for_status()
         ids: list[int] = r.json()[:count]
-        stories = await asyncio.gather(*[_fetch_item(client, i) for i in ids])
-        return [s for s in stories if s]
+        logger.debug("fetching %d top stories", len(ids))
+        return await gather_items([fetch_item(client, i) for i in ids], "top_stories")
 
 
 async def get_new_stories(
     count: Annotated[int, "Number of new stories to return (1-30)"] = 10,
-) -> list[dict]:
+) -> list[Story]:
     """Fetch the most recently submitted stories from Hacker News."""
-    count = max(1, min(count, 30))
+    count = max(1, min(count, MAX_STORY_COUNT))
     async with hn_client() as client:
         r = await client.get("/newstories.json")
         r.raise_for_status()
         ids: list[int] = r.json()[:count]
-        stories = await asyncio.gather(*[_fetch_item(client, i) for i in ids])
-        return [s for s in stories if s]
+        logger.debug("fetching %d new stories", len(ids))
+        return await gather_items([fetch_item(client, i) for i in ids], "new_stories")

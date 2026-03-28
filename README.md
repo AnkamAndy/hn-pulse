@@ -1,5 +1,7 @@
 # HN Pulse
 
+[![CI](https://github.com/AnkamAndy/hn-pulse/actions/workflows/ci.yml/badge.svg)](https://github.com/AnkamAndy/hn-pulse/actions/workflows/ci.yml)
+
 A **Hacker News MCP Server** built with [arcade-mcp](https://github.com/ArcadeAI/arcade-mcp), plus a Claude-powered research agent that uses it.
 
 HN Pulse gives any MCP-compatible AI assistant (Claude Desktop, Cursor, VS Code) direct read access to Hacker News — top stories, search, comments, user profiles, job listings, Ask HN, and Show HN — all via the public HN Firebase and Algolia APIs. No API keys required for the server.
@@ -39,7 +41,7 @@ User → agent/agent.py ──stdio──► src/hn_pulse/server.py
           hacker-news.firebaseio.com  hn.algolia.com/api/v1
 ```
 
-The agent spawns the MCP server as a subprocess, connects via stdio transport, then runs a standard Claude tool-use loop: Claude chooses a tool → agent calls it via MCP → result fed back to Claude → loop until `end_turn`.
+The agent spawns the MCP server as a subprocess, connects via stdio transport, then uses **LangGraph's `create_react_agent`** with `langchain-mcp-adapters` to bridge MCP tools into a standard ReAct loop: Claude chooses a tool → agent calls it via MCP → result fed back to Claude → loop until done.
 
 ---
 
@@ -150,11 +152,22 @@ pytest tests/evals/ -m eval -v
 pytest -m "not eval" -v
 ```
 
+Or use the **Makefile** shortcuts:
+
+```bash
+make install       # install all deps
+make test          # unit + integration (no API key needed)
+make test-eval     # eval tier only (requires ANTHROPIC_API_KEY)
+make lint          # ruff check
+make typecheck     # mypy
+make check         # lint + typecheck + test (full local CI)
+```
+
 ### Test Coverage
 
 | Suite | Count | What it validates |
 |-------|-------|-------------------|
-| Unit | 22 tests | Each tool function in isolation (mocked HTTP via pytest-httpx) |
+| Unit | 41 tests | Each tool function in isolation — happy path + error scenarios (mocked HTTP via pytest-httpx) |
 | Integration | 3 tests | MCP server starts, all 8 tools registered with valid schemas |
 | Evals | 10 parametrized cases | Claude selects the correct tool for 10 natural-language queries |
 
@@ -168,24 +181,31 @@ hn-pulse/
 │   └── commands/
 │       ├── hn-research.md     # /hn-research — runs the research agent
 │       └── run-evals.md       # /run-evals — three-tier test runner
+├── .github/
+│   └── workflows/
+│       └── ci.yml             # CI: lint + typecheck + tests on PR; evals on main
 ├── src/hn_pulse/
 │   ├── server.py          # MCPApp entrypoint — registers all tools
 │   ├── client.py          # httpx client factory (HN + Algolia)
+│   ├── types.py           # TypedDict definitions (Story, SearchResponse, …)
 │   └── tools/
+│       ├── common.py      # Shared fetch_item, gather_items, constants
 │       ├── stories.py     # get_top_stories, get_new_stories
 │       ├── item.py        # get_story_details
 │       ├── search.py      # search_stories (Algolia)
 │       ├── users.py       # get_user_profile
 │       └── specials.py    # get_job_listings, get_ask_hn, get_show_hn
 ├── agent/
-│   └── agent.py           # Claude research agent (stdio MCP client)
+│   └── agent.py           # LangGraph ReAct agent (langchain-mcp-adapters)
 ├── tests/
-│   ├── unit/              # pytest-httpx mocked tool tests
+│   ├── unit/              # pytest-httpx mocked tool tests (+ error scenarios)
 │   ├── integration/       # real MCP server startup tests
 │   └── evals/             # Claude tool-selection accuracy tests
 ├── docs/
 │   ├── spec.md            # Spec-driven development prompt to recreate this project
 │   └── systems-design.html # Architecture diagram + design trade-offs
+├── Makefile               # make check, make test, make lint, make typecheck
+├── .pre-commit-config.yaml
 ├── pyproject.toml
 └── .env.example
 ```
@@ -199,6 +219,10 @@ hn-pulse/
 **Concurrent item fetches**: The HN Firebase API returns only ID arrays from feed endpoints. Fetching N stories naively would require N sequential round trips. All tools use `asyncio.gather()` to fetch items in parallel, reducing latency to ~2 round trips regardless of count.
 
 **Algolia metadata stripping**: Algolia search results include `_highlightResult`, `children` (arrays of comment IDs), and other metadata that bloat LLM context. `_clean_hit()` strips these before returning, reducing each result from ~2 KB to ~200 bytes.
+
+**Shared helpers** (`tools/common.py`): `fetch_item` and `gather_items` are the single canonical implementations used by all feed tools — no duplicate private helpers. Constants (`MAX_STORY_COUNT`, etc.) live here so magic numbers never appear in tool files.
+
+**LangGraph agent**: `agent/agent.py` uses `create_react_agent` from `langgraph.prebuilt` with `load_mcp_tools` from `langchain-mcp-adapters` — the same pattern used by ArcadeAI reference projects. This replaces ~60 lines of manual message accumulation with a 3-line agent setup.
 
 For the full spec used to build this project (suitable for reproducing it with an AI coding agent), see [docs/spec.md](docs/spec.md).
 

@@ -1,11 +1,15 @@
 """Algolia full-text search tool for Hacker News."""
 
+import logging
 from typing import Annotated, Literal
 
 from hn_pulse.client import algolia_client
+from hn_pulse.types import SearchHit, SearchResponse
+
+logger = logging.getLogger(__name__)
 
 
-def _clean_hit(hit: dict) -> dict:
+def _clean_hit(hit: dict) -> SearchHit:
     """Strip Algolia metadata, keeping only fields useful to an LLM."""
     return {
         "story_id": hit.get("story_id") or hit.get("objectID"),
@@ -31,7 +35,7 @@ async def search_stories(
     ] = "story",
     num_results: Annotated[int, "Number of results to return (1-20)"] = 10,
     page: Annotated[int, "Page number for pagination (0-indexed)"] = 0,
-) -> dict:
+) -> SearchResponse:
     """Search Hacker News stories and comments using Algolia full-text search."""
     num_results = max(1, min(num_results, 20))
     endpoint = "/search" if sort_by == "relevance" else "/search_by_date"
@@ -48,6 +52,7 @@ async def search_stories(
         )
         r.raise_for_status()
         data = r.json()
+        logger.debug("search '%s': %d total hits", query, data["nbHits"])
         return {
             "query": data["query"],
             "total_hits": data["nbHits"],

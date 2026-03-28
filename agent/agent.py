@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""HN Research Agent — Claude-powered CLI for querying Hacker News via MCP.
+"""HN Research Agent — LangGraph-powered CLI for querying Hacker News via MCP.
+
+Uses LangGraph's create_react_agent with langchain-mcp-adapters to connect to
+the HN Pulse MCP server over stdio, exposing all 8 HN tools to Claude.
 
 Usage:
     python agent/agent.py                           # interactive mode
@@ -7,11 +10,12 @@ Usage:
 """
 
 import asyncio
-import json
 import sys
 from pathlib import Path
 
-import anthropic
+from langchain_anthropic import ChatAnthropic
+from langchain_mcp_adapters.tools import load_mcp_tools
+from langgraph.prebuilt import create_react_agent
 from mcp import ClientSession
 from mcp.client.stdio import StdioServerParameters, stdio_client
 from rich.console import Console
@@ -24,15 +28,8 @@ SERVER_SCRIPT = str(Path(__file__).parent.parent / "src" / "hn_pulse" / "server.
 SYSTEM_PROMPT = """\
 You are an expert Hacker News research assistant with access to the HN API and Algolia search.
 
-Guidelines for tool selection:
-- "What's trending / top / hot" → get_top_stories
-- "Latest / newest / recent submissions" → get_new_stories
-- "What are people saying about X" or topic research → search_stories
-- Job searches → get_job_listings (or search_stories with tags="job")
-- "Show HN" / community builds → get_show_hn
-- "Ask HN" / community questions → get_ask_hn
-- Specific story ID or full discussion → get_story_details
-- User karma / profile → get_user_profile
+Use the available tools to answer questions about Hacker News stories, discussions, users,
+job listings, Ask HN posts, and Show HN projects.
 
 Always synthesize results into a clear, structured answer.
 Cite story titles, authors, and scores when referencing specific content.
@@ -41,85 +38,49 @@ Cite story titles, authors, and scores when referencing specific content.
 console = Console()
 
 
-def _mcp_tool_to_anthropic(tool) -> dict:
-    """Convert an MCP ToolInfo object to the Anthropic tools API format."""
-    return {
-        "name": tool.name,
-        "description": tool.description or "",
-        "input_schema": tool.inputSchema or {"type": "object", "properties": {}},
-    }
+async def build_agent(session: ClientSession):  # type: ignore[return]
+    """Create a LangGraph ReAct agent wired to all MCP tools from the session."""
+    tools = await load_mcp_tools(session)
+    llm = ChatAnthropic(model="claude-sonnet-4-6", max_tokens=4096)
+    return create_react_agent(llm, tools, prompt=SYSTEM_PROMPT)
 
 
-def _extract_text(result_content: list) -> str:
-    """Extract plain text from MCP CallToolResult content."""
-    parts = []
-    for block in result_content:
-        if hasattr(block, "text"):
-            parts.append(block.text)
-        else:
-            parts.append(str(block))
-    return "\n".join(parts)
-
-
-async def run_query(query: str, session: ClientSession, anth_client: anthropic.AsyncAnthropic) -> None:
-    """Run a single research query against the MCP server and stream the answer."""
-    tools_result = await session.list_tools()
-    tools = [_mcp_tool_to_anthropic(t) for t in tools_result.tools]
-
-    messages: list[dict] = [{"role": "user", "content": query}]
-
+async def run_query(query: str, agent) -> None:  # type: ignore[type-arg]
+    """Invoke the agent with a single query and print tool calls + final answer."""
     console.print(f"\n[bold yellow]Query:[/bold yellow] {query}\n")
 
-    # Agentic loop: call Claude, execute tools, loop until end_turn
-    while True:
-        response = await anth_client.messages.create(
-            model="claude-sonnet-4-6",
-            max_tokens=4096,
-            system=SYSTEM_PROMPT,
-            tools=tools,
-            messages=messages,
+    result = await agent.ainvoke({"messages": [{"role": "user", "content": query}]})
+
+    # Show tool calls from intermediate messages
+    messages = result.get("messages", [])
+    for msg in messages:
+        # ToolMessage has a name attribute; AIMessage may have tool_calls
+        if hasattr(msg, "tool_calls") and msg.tool_calls:
+            for tc in msg.tool_calls:
+                name = tc.get("name", "") if isinstance(tc, dict) else getattr(tc, "name", "")
+                args = tc.get("args", {}) if isinstance(tc, dict) else getattr(tc, "args", {})
+                args_str = ", ".join(f"{k}={v!r}" for k, v in (args or {}).items())
+                args_preview = args_str[:80] + "…" if len(args_str) > 80 else args_str
+                console.print(f"[dim]  → calling [cyan]{name}[/cyan]({args_preview})[/dim]")
+
+    # Extract final answer from the last AIMessage
+    final = messages[-1] if messages else None
+    if final is None:
+        console.print("[red]No response received.[/red]")
+        return
+
+    content = final.content
+    if isinstance(content, str):
+        text = content
+    elif isinstance(content, list):
+        text = "".join(
+            b.get("text", "") if isinstance(b, dict) else str(b)
+            for b in content
         )
+    else:
+        text = str(content)
 
-        # Accumulate assistant turn
-        messages.append({"role": "assistant", "content": response.content})
-
-        if response.stop_reason == "end_turn":
-            # Print the final answer
-            for block in response.content:
-                if hasattr(block, "text") and block.text:
-                    console.print(Markdown(block.text))
-            break
-
-        if response.stop_reason == "tool_use":
-            tool_results = []
-            for block in response.content:
-                if block.type != "tool_use":
-                    continue
-                console.print(f"[dim]  → calling [cyan]{block.name}[/cyan]({_fmt_args(block.input)})[/dim]")
-                try:
-                    mcp_result = await session.call_tool(block.name, block.input)
-                    content = _extract_text(mcp_result.content)
-                except Exception as exc:
-                    content = f"Error calling tool: {exc}"
-
-                tool_results.append({
-                    "type": "tool_result",
-                    "tool_use_id": block.id,
-                    "content": content,
-                })
-
-            messages.append({"role": "user", "content": tool_results})
-        else:
-            # Unexpected stop reason — bail out
-            console.print(f"[red]Unexpected stop_reason: {response.stop_reason}[/red]")
-            break
-
-
-def _fmt_args(args: dict) -> str:
-    """Format tool arguments compactly for display."""
-    parts = [f"{k}={json.dumps(v)}" for k, v in (args or {}).items()]
-    summary = ", ".join(parts)
-    return summary[:80] + "…" if len(summary) > 80 else summary
+    console.print(Markdown(text))
 
 
 async def main() -> None:
@@ -137,19 +98,19 @@ async def main() -> None:
 
             console.print(
                 Panel(
-                    f"[bold green]HN Pulse Research Agent[/bold green]\n"
+                    f"[bold green]HN Pulse Research Agent[/bold green] [dim](LangGraph)[/dim]\n"
                     f"[dim]Connected to hn-pulse MCP server with {len(tool_names)} tools:[/dim]\n"
                     + "  ".join(f"[cyan]{n}[/cyan]" for n in tool_names),
                     expand=False,
                 )
             )
 
-            anth_client = anthropic.AsyncAnthropic()
+            agent = await build_agent(session)
 
             if len(sys.argv) > 1:
                 # One-shot mode: query from CLI args
                 query = " ".join(sys.argv[1:])
-                await run_query(query, session, anth_client)
+                await run_query(query, agent)
             else:
                 # Interactive mode
                 console.print("[dim]Type your question or 'quit' to exit.[/dim]\n")
@@ -160,7 +121,7 @@ async def main() -> None:
                         break
                     if not query or query.lower() in ("quit", "exit", "q"):
                         break
-                    await run_query(query, session, anth_client)
+                    await run_query(query, agent)
                     console.print()
 
 
