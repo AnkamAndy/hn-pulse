@@ -4,8 +4,8 @@ import logging
 from typing import Annotated, cast
 
 from hn_pulse.client import hn_client
+from hn_pulse.hn_types import Story
 from hn_pulse.tools.common import MAX_SPECIAL_COUNT, fetch_item, gather_items
-from hn_pulse.types import Story
 
 logger = logging.getLogger(__name__)
 

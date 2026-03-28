@@ -4,7 +4,7 @@ import logging
 from typing import Annotated, Literal
 
 from hn_pulse.client import algolia_client
-from hn_pulse.types import SearchHit, SearchResponse
+from hn_pulse.hn_types import SearchHit, SearchResponse
 
 logger = logging.getLogger(__name__)
 

@@ -4,8 +4,8 @@ import logging
 from typing import Annotated
 
 from hn_pulse.client import hn_client
+from hn_pulse.hn_types import UserProfile
 from hn_pulse.tools.common import MAX_USER_SUBMISSIONS
-from hn_pulse.types import UserProfile
 
 logger = logging.getLogger(__name__)
 

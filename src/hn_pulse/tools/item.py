@@ -7,8 +7,8 @@ from typing import Annotated
 import httpx
 
 from hn_pulse.client import hn_client
+from hn_pulse.hn_types import Comment, Story
 from hn_pulse.tools.common import MAX_COMMENTS, MAX_REPLY_CHILDREN
-from hn_pulse.types import Comment, Story
 
 logger = logging.getLogger(__name__)
 
