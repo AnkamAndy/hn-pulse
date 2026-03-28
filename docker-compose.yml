@@ -1,0 +1,53 @@
+# HN Pulse — multi-service deployment
+#
+# Services:
+#   hn-server    — HN Pulse MCP server   (port 8000, /mcp/ endpoint)
+#   fetch-server — HN Fetch MCP server   (port 8001, /mcp/ endpoint)
+#
+# Quick start:
+#   docker compose up --build
+#
+# Run the agent against the deployed services:
+#   MCP_SERVER_URL=http://localhost:8000/mcp/ \
+#   HN_FETCH_URL=http://localhost:8001/mcp/ \
+#   ANTHROPIC_API_KEY=sk-... \
+#   python agent/agent.py "Summarise the top story and read its full article"
+#
+# Health check:
+#   curl http://localhost:8000/openapi.json | python3 -m json.tool
+#   curl http://localhost:8001/openapi.json | python3 -m json.tool
+
+services:
+  hn-server:
+    build: .
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c",
+             "import urllib.request; urllib.request.urlopen('http://localhost:8000/openapi.json')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  fetch-server:
+    build: .
+    command:
+      - python
+      - src/hn_extras/server.py
+      - http
+      - --host
+      - "0.0.0.0"
+      - --port
+      - "8001"
+    ports:
+      - "8001:8001"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c",
+             "import urllib.request; urllib.request.urlopen('http://localhost:8001/openapi.json')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s

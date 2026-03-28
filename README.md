@@ -10,6 +10,8 @@ HN Pulse gives any MCP-compatible AI assistant (Claude Desktop, Cursor, VS Code)
 
 ## What It Does
 
+**HN Pulse MCP Server** — 8 tools:
+
 | Tool | Description |
 |------|-------------|
 | `get_top_stories` | Top N HN stories by ranking |
@@ -20,6 +22,12 @@ HN Pulse gives any MCP-compatible AI assistant (Claude Desktop, Cursor, VS Code)
 | `get_job_listings` | Current HN job postings |
 | `get_ask_hn` | Recent Ask HN posts |
 | `get_show_hn` | Recent Show HN posts |
+
+**HN Fetch MCP Server** — 1 supplementary tool (second service):
+
+| Tool | Description |
+|------|-------------|
+| `fetch_article` | Fetches the full text of any article URL |
 
 The included **research agent** wraps these tools with Claude to answer natural-language queries like:
 
@@ -42,6 +50,10 @@ User → agent/agent.py ──stdio──► src/hn_pulse/server.py
 ```
 
 The agent spawns the MCP server as a subprocess, connects via stdio transport, then uses **LangGraph's `create_react_agent`** with `langchain-mcp-adapters` to bridge MCP tools into a standard ReAct loop: Claude chooses a tool → agent calls it via MCP → result fed back to Claude → loop until done.
+
+**Conversation state** is persisted across turns in interactive mode via LangGraph's `MemorySaver` checkpointer — the agent remembers what it said earlier in the same session. Each session gets a UUID `thread_id`. One-shot mode always starts a fresh thread.
+
+**Multi-service**: when `ENABLE_FETCH=1` is set, the agent also connects to the HN Fetch MCP server, allowing Claude to read full article content from any HN story URL.
 
 ---
 
@@ -104,16 +116,21 @@ arcade configure claude
 ### Local mode (default — server spawned as subprocess)
 
 ```bash
-# Interactive mode
+# Interactive mode — stateful (agent remembers the conversation)
 python agent/agent.py
 
 # One-shot mode
 python agent/agent.py "What are people saying about Rust in 2025?"
-python agent/agent.py "Find ML job postings on HN"
-python agent/agent.py "Summarize the top Show HN projects this week"
+
+# One-shot with structured output (pipeline-composable)
+python agent/agent.py "Summarise top AI stories" --output report.md
+python agent/agent.py "What's trending?" --json
+
+# Enable multi-service: also connect the URL fetch server
+ENABLE_FETCH=1 python agent/agent.py "What does the top HN story say?"
 ```
 
-The agent spawns the MCP server automatically as a subprocess via stdio.
+The agent spawns the MCP server(s) automatically as subprocesses via stdio.
 
 ### Remote mode (server on a different machine)
 
@@ -133,6 +150,21 @@ python agent/agent.py "What's trending on HN today?"
 ```
 
 The agent automatically switches from stdio to HTTP transport when `MCP_SERVER_URL` is set — no code changes needed. The MCP endpoint is always at `/mcp/`.
+
+### Docker deployment (both services)
+
+```bash
+# Build and start both MCP servers as containers
+docker compose up --build
+
+# Run the agent against the deployed services
+MCP_SERVER_URL=http://localhost:8000/mcp/ \
+HN_FETCH_URL=http://localhost:8001/mcp/ \
+ANTHROPIC_API_KEY=sk-... \
+python agent/agent.py "Summarise the top story and read its full article"
+```
+
+`docker-compose.yml` starts two services: `hn-server` (port 8000) and `fetch-server` (port 8001), each with health checks. Both are built from the same `Dockerfile`.
 
 ---
 
@@ -188,7 +220,7 @@ make check         # lint + typecheck + test (full local CI)
 
 | Suite | Count | What it validates |
 |-------|-------|-------------------|
-| Unit | 41 tests | Each tool function in isolation — happy path + error scenarios (mocked HTTP via pytest-httpx) |
+| Unit | 51 tests | Each tool function in isolation — happy path + error scenarios (mocked HTTP via pytest-httpx) |
 | Integration | 3 tests | MCP server starts, all 8 tools registered with valid schemas |
 | Evals | 10 parametrized cases | Claude selects the correct tool for 10 natural-language queries |
 
@@ -205,26 +237,32 @@ hn-pulse/
 ├── .github/
 │   └── workflows/
 │       └── ci.yml             # CI: lint + typecheck + tests on PR; evals on main
-├── src/hn_pulse/
-│   ├── server.py          # MCPApp entrypoint — registers all tools
-│   ├── client.py          # httpx client factory (HN + Algolia)
-│   ├── types.py           # TypedDict definitions (Story, SearchResponse, …)
-│   └── tools/
-│       ├── common.py      # Shared fetch_item, gather_items, constants
-│       ├── stories.py     # get_top_stories, get_new_stories
-│       ├── item.py        # get_story_details
-│       ├── search.py      # search_stories (Algolia)
-│       ├── users.py       # get_user_profile
-│       └── specials.py    # get_job_listings, get_ask_hn, get_show_hn
+├── src/
+│   ├── hn_pulse/
+│   │   ├── server.py      # MCPApp entrypoint — registers all 8 tools
+│   │   ├── client.py      # httpx client factory (HN + Algolia)
+│   │   ├── types.py       # TypedDict definitions (Story, SearchResponse, …)
+│   │   └── tools/
+│   │       ├── common.py  # Shared fetch_item, gather_items, constants
+│   │       ├── stories.py # get_top_stories, get_new_stories
+│   │       ├── item.py    # get_story_details
+│   │       ├── search.py  # search_stories (Algolia)
+│   │       ├── users.py   # get_user_profile
+│   │       └── specials.py # get_job_listings, get_ask_hn, get_show_hn
+│   └── hn_extras/
+│       ├── fetch.py       # fetch_article tool (HTML → plain text)
+│       └── server.py      # Second MCPApp — URL article fetcher
 ├── agent/
-│   └── agent.py           # LangGraph ReAct agent (langchain-mcp-adapters)
+│   └── agent.py           # Stateful LangGraph agent — multi-service, --output/--json
 ├── tests/
-│   ├── unit/              # pytest-httpx mocked tool tests (+ error scenarios)
+│   ├── unit/              # pytest-httpx mocked tests (51 total, incl. error scenarios)
 │   ├── integration/       # real MCP server startup tests
 │   └── evals/             # Claude tool-selection accuracy tests
 ├── docs/
 │   ├── spec.md            # Spec-driven development prompt to recreate this project
 │   └── systems-design.html # Architecture diagram + design trade-offs
+├── Dockerfile             # Single image for both MCP servers
+├── docker-compose.yml     # hn-server (8000) + fetch-server (8001)
 ├── Makefile               # make check, make test, make lint, make typecheck
 ├── .pre-commit-config.yaml
 ├── pyproject.toml
@@ -243,7 +281,13 @@ hn-pulse/
 
 **Shared helpers** (`tools/common.py`): `fetch_item` and `gather_items` are the single canonical implementations used by all feed tools — no duplicate private helpers. Constants (`MAX_STORY_COUNT`, etc.) live here so magic numbers never appear in tool files.
 
-**LangGraph agent**: `agent/agent.py` uses `create_react_agent` from `langgraph.prebuilt` with `load_mcp_tools` from `langchain-mcp-adapters` — the same pattern used by ArcadeAI reference projects. This replaces ~60 lines of manual message accumulation with a 3-line agent setup.
+**LangGraph agent**: `agent/agent.py` uses `create_react_agent` from LangGraph with `MultiServerMCPClient` from `langchain-mcp-adapters` — the same pattern used by ArcadeAI reference projects. `MemorySaver` + `thread_id` gives the interactive agent persistent conversation memory across turns.
+
+**Multi-service orchestration**: `MultiServerMCPClient` connects to both `hn_pulse` and `hn_fetch` simultaneously. The agent can search HN for a story and then fetch the full article in a single reasoning loop — each service independently local or remote.
+
+**Structured deliverables**: `--output report.md` writes a formatted Markdown report; `--json` prints a structured payload (`query`, `answer`, `tools_used`, `timestamp`) for downstream pipeline consumption.
+
+**Containerised**: `Dockerfile` + `docker-compose.yml` deploy both MCP servers as isolated containers with health checks. `docker compose up --build` replaces the entire manual venv/install flow.
 
 For the full spec used to build this project (suitable for reproducing it with an AI coding agent), see [docs/spec.md](docs/spec.md).
 
