@@ -24,7 +24,7 @@ async def fetch_item(client: httpx.AsyncClient, item_id: int) -> dict | None:
         if r.status_code != 200:
             logger.warning("item %d: HTTP %d", item_id, r.status_code)
             return None
-        data = r.json()
+        data: dict | None = r.json()
         if data is None:
             logger.debug("item %d: null (deleted or missing)", item_id)
         return data

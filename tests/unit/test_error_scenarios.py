@@ -7,7 +7,7 @@ import httpx
 import pytest
 
 from hn_pulse.client import hn_client
-from hn_pulse.tools.common import fetch_item, gather_items
+from hn_pulse.tools.common import fetch_item
 from hn_pulse.tools.search import search_stories
 from hn_pulse.tools.specials import get_job_listings
 from hn_pulse.tools.stories import get_top_stories

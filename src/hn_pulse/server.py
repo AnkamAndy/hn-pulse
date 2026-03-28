@@ -2,7 +2,6 @@
 """HN Pulse MCP Server — exposes Hacker News data via the Model Context Protocol."""
 
 import argparse
-import sys
 
 from arcade_mcp_server import MCPApp
 
@@ -19,7 +18,7 @@ app = MCPApp(
 )
 
 for _tool in ALL_TOOLS:
-    app.add_tool(_tool)
+    app.add_tool(_tool)  # type: ignore[arg-type]
 
 
 def _parse_args() -> argparse.Namespace:

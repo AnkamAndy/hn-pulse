@@ -26,18 +26,18 @@ async def _fetch_comment(
     except httpx.HTTPError:
         return None
 
-    comment = r.json()
-    if not comment or comment.get("deleted") or comment.get("dead"):
+    raw: dict = r.json()
+    if not raw or raw.get("deleted") or raw.get("dead"):
         return None
 
-    if include_replies and comment.get("kids"):
-        child_ids: list[int] = comment["kids"][:MAX_REPLY_CHILDREN]
+    if include_replies and raw.get("kids"):
+        child_ids: list[int] = raw["kids"][:MAX_REPLY_CHILDREN]
         replies = await asyncio.gather(
             *[_fetch_comment(client, k, False) for k in child_ids]
         )
-        comment["replies"] = [rep for rep in replies if rep]
+        raw["replies"] = [rep for rep in replies if rep]
 
-    return comment
+    return raw  # type: ignore[return-value]
 
 
 async def get_story_details(
@@ -52,7 +52,7 @@ async def get_story_details(
         r.raise_for_status()
         story = r.json()
         if not story:
-            return {"error": f"Story {story_id} not found"}  # type: ignore[return-value]
+            return {"error": f"Story {story_id} not found"}  # type: ignore[return-value,typeddict-unknown-key]
 
         kid_ids: list[int] = story.get("kids", [])[:max_comments]
         comments = await asyncio.gather(
@@ -65,4 +65,4 @@ async def get_story_details(
         story["comments"] = valid_comments
         # Remove raw kids list to avoid duplicating data
         story.pop("kids", None)
-        return story
+        return story  # type: ignore[return-value,no-any-return]

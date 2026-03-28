@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 def _clean_hit(hit: dict) -> SearchHit:
     """Strip Algolia metadata, keeping only fields useful to an LLM."""
     return {
-        "story_id": hit.get("story_id") or hit.get("objectID"),
+        "story_id": str(hit["story_id"]) if hit.get("story_id") else hit.get("objectID"),  # type: ignore[typeddict-item,misc]
         "title": hit.get("title") or hit.get("story_title"),
         "url": hit.get("url") or hit.get("story_url"),
         "author": hit.get("author"),

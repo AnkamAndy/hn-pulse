@@ -1,7 +1,7 @@
 """Job listings, Ask HN, and Show HN feed tools."""
 
 import logging
-from typing import Annotated
+from typing import Annotated, cast
 
 from hn_pulse.client import hn_client
 from hn_pulse.tools.common import MAX_SPECIAL_COUNT, fetch_item, gather_items
@@ -16,7 +16,7 @@ async def _fetch_feed(endpoint: str, count: int) -> list[Story]:
         r.raise_for_status()
         ids: list[int] = r.json()[:count]
         logger.debug("fetching %d items from %s", len(ids), endpoint)
-        return await gather_items([fetch_item(client, i) for i in ids], endpoint)
+        return cast(list[Story], await gather_items([fetch_item(client, i) for i in ids], endpoint))
 
 
 async def get_job_listings(

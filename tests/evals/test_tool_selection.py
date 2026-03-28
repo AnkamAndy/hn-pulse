@@ -21,7 +21,9 @@ pytestmark = pytest.mark.eval
 TOOL_SCHEMAS = [
     {
         "name": "get_top_stories",
-        "description": "Fetch the current top stories from Hacker News, ranked by score and recency.",
+        "description": (
+            "Fetch the current top stories from Hacker News, ranked by score and recency."
+        ),
         "input_schema": {
             "type": "object",
             "properties": {"count": {"type": "integer", "description": "Number of stories (1-30)"}},
@@ -37,7 +39,9 @@ TOOL_SCHEMAS = [
     },
     {
         "name": "get_story_details",
-        "description": "Get full details of a Hacker News story including title, URL, score, and top comments.",
+        "description": (
+            "Get full details of a Hacker News story including title, URL, score, and top comments."
+        ),
         "input_schema": {
             "type": "object",
             "properties": {
@@ -63,7 +67,9 @@ TOOL_SCHEMAS = [
     },
     {
         "name": "get_user_profile",
-        "description": "Get a Hacker News user's profile: karma, about text, and account creation date.",
+        "description": (
+            "Get a Hacker News user's profile: karma, about text, and account creation date."
+        ),
         "input_schema": {
             "type": "object",
             "properties": {"username": {"type": "string", "description": "HN username"}},
@@ -72,7 +78,9 @@ TOOL_SCHEMAS = [
     },
     {
         "name": "get_job_listings",
-        "description": "Fetch current job postings from Hacker News (YC companies and community job posts).",
+        "description": (
+            "Fetch current job postings from Hacker News (YC companies and community job posts)."
+        ),
         "input_schema": {
             "type": "object",
             "properties": {"count": {"type": "integer"}},
@@ -88,7 +96,9 @@ TOOL_SCHEMAS = [
     },
     {
         "name": "get_show_hn",
-        "description": "Fetch recent Show HN posts — projects and tools shared by the HN community.",
+        "description": (
+            "Fetch recent Show HN posts — projects and tools shared by the HN community."
+        ),
         "input_schema": {
             "type": "object",
             "properties": {"count": {"type": "integer"}},
@@ -102,7 +112,7 @@ CASES = [
     ("Show me the hottest stories right now", "get_top_stories", "hot = top stories"),
     ("What are the newest submissions on HN?", "get_new_stories", "newest = new stories"),
     ("Get the most recently posted stories", "get_new_stories", "recent = new stories"),
-    ("What are people saying about Rust programming language?", "search_stories", "opinion query = search"),
+    ("What are people saying about Rust?", "search_stories", "opinion = search"),
     ("Search for articles about large language models", "search_stories", "explicit search"),
     ("Find current job postings on Hacker News", "get_job_listings", "job = job listings"),
     ("What questions is the HN community asking this week?", "get_ask_hn", "questions = ask hn"),

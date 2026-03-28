@@ -1,7 +1,7 @@
 """Top and new story feed tools."""
 
 import logging
-from typing import Annotated
+from typing import Annotated, cast
 
 from hn_pulse.client import hn_client
 from hn_pulse.tools.common import MAX_STORY_COUNT, fetch_item, gather_items
@@ -20,7 +20,8 @@ async def get_top_stories(
         r.raise_for_status()
         ids: list[int] = r.json()[:count]
         logger.debug("fetching %d top stories", len(ids))
-        return await gather_items([fetch_item(client, i) for i in ids], "top_stories")
+        items = await gather_items([fetch_item(client, i) for i in ids], "top_stories")
+        return cast(list[Story], items)
 
 
 async def get_new_stories(
@@ -33,4 +34,5 @@ async def get_new_stories(
         r.raise_for_status()
         ids: list[int] = r.json()[:count]
         logger.debug("fetching %d new stories", len(ids))
-        return await gather_items([fetch_item(client, i) for i in ids], "new_stories")
+        items = await gather_items([fetch_item(client, i) for i in ids], "new_stories")
+        return cast(list[Story], items)

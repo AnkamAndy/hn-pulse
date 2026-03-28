@@ -22,7 +22,7 @@ async def get_user_profile(
         r.raise_for_status()
         user = r.json()
         if not user:
-            return {"error": f"User '{username}' not found"}  # type: ignore[return-value]
+            return {"error": f"User '{username}' not found"}  # type: ignore[return-value,typeddict-unknown-key]
 
         logger.debug("user '%s': karma=%d", username, user.get("karma", 0))
         result: UserProfile = {
