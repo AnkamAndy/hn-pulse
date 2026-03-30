@@ -8,7 +8,7 @@ Three workflows:
 
 import asyncio
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
+from datetime import timedelta
 from pathlib import Path
 from typing import Any
 
@@ -191,9 +191,11 @@ class DailyDigestWorkflow:
         )
 
         # Step 3: build and write digest (file write gated outside replay)
-        date_str = datetime.now(UTC).strftime("%Y-%m-%d")
+        now = workflow.now()
+        date_str = now.strftime("%Y-%m-%d")
+        time_str = now.strftime("%H:%M UTC")
         digest_md = _build_digest_markdown(
-            date_str, top_stories, ask_stories, show_stories, detailed
+            date_str, time_str, top_stories, ask_stories, show_stories, detailed
         )
 
         output_path: str | None = None
@@ -213,6 +215,7 @@ class DailyDigestWorkflow:
 
 def _build_digest_markdown(
     date_str: str,
+    time_str: str,
     top_stories: list[dict],
     ask_stories: list[dict],
     show_stories: list[dict],
@@ -220,7 +223,7 @@ def _build_digest_markdown(
 ) -> str:
     lines: list[str] = [
         f"# HN Daily Digest — {date_str}",
-        f"_Generated at {datetime.now(UTC).strftime('%H:%M UTC')}_",
+        f"_Generated at {time_str}_",
         "",
         "## Top Stories",
     ]
