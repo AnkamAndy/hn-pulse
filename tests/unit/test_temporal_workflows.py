@@ -93,19 +93,18 @@ _ALL_MOCK_ACTIVITIES = [
 
 @pytest.mark.asyncio
 async def test_research_workflow_returns_stories():
-    async with await WorkflowEnvironment.start_time_skipping() as env:
-        async with Worker(
-            env.client,
+    async with await WorkflowEnvironment.start_time_skipping() as env, Worker(
+        env.client,
+        task_queue=TASK_QUEUE,
+        workflows=[HNResearchWorkflow],
+        activities=_ALL_MOCK_ACTIVITIES,
+    ):
+        result = await env.client.execute_workflow(
+            HNResearchWorkflow.run,
+            ResearchInput(query="rust", num_results=2),
+            id="test-research-1",
             task_queue=TASK_QUEUE,
-            workflows=[HNResearchWorkflow],
-            activities=_ALL_MOCK_ACTIVITIES,
-        ):
-            result = await env.client.execute_workflow(
-                HNResearchWorkflow.run,
-                ResearchInput(query="rust", num_results=2),
-                id="test-research-1",
-                task_queue=TASK_QUEUE,
-            )
+        )
 
     assert result["query"] == "rust"
     assert result["stories_fetched"] == 2
@@ -116,19 +115,18 @@ async def test_research_workflow_returns_stories():
 
 @pytest.mark.asyncio
 async def test_research_workflow_fetches_articles_when_requested():
-    async with await WorkflowEnvironment.start_time_skipping() as env:
-        async with Worker(
-            env.client,
+    async with await WorkflowEnvironment.start_time_skipping() as env, Worker(
+        env.client,
+        task_queue=TASK_QUEUE,
+        workflows=[HNResearchWorkflow],
+        activities=_ALL_MOCK_ACTIVITIES,
+    ):
+        result = await env.client.execute_workflow(
+            HNResearchWorkflow.run,
+            ResearchInput(query="rust", num_results=2, fetch_articles=True),
+            id="test-research-2",
             task_queue=TASK_QUEUE,
-            workflows=[HNResearchWorkflow],
-            activities=_ALL_MOCK_ACTIVITIES,
-        ):
-            result = await env.client.execute_workflow(
-                HNResearchWorkflow.run,
-                ResearchInput(query="rust", num_results=2, fetch_articles=True),
-                id="test-research-2",
-                task_queue=TASK_QUEUE,
-            )
+        )
 
     assert result["articles_fetched"] == 2
     assert len(result["articles"]) == 2
@@ -144,19 +142,18 @@ async def test_research_workflow_returns_empty_on_no_hits():
     ) -> dict:
         return {"query": query, "total_hits": 0, "hits": []}
 
-    async with await WorkflowEnvironment.start_time_skipping() as env:
-        async with Worker(
-            env.client,
+    async with await WorkflowEnvironment.start_time_skipping() as env, Worker(
+        env.client,
+        task_queue=TASK_QUEUE,
+        workflows=[HNResearchWorkflow],
+        activities=[empty_search, *_ALL_MOCK_ACTIVITIES[1:]],
+    ):
+        result = await env.client.execute_workflow(
+            HNResearchWorkflow.run,
+            ResearchInput(query="obscure topic"),
+            id="test-research-3",
             task_queue=TASK_QUEUE,
-            workflows=[HNResearchWorkflow],
-            activities=[empty_search, *_ALL_MOCK_ACTIVITIES[1:]],
-        ):
-            result = await env.client.execute_workflow(
-                HNResearchWorkflow.run,
-                ResearchInput(query="obscure topic"),
-                id="test-research-3",
-                task_queue=TASK_QUEUE,
-            )
+        )
 
     assert result["stories_fetched"] == 0
     assert result["articles_fetched"] == 0
@@ -167,25 +164,24 @@ async def test_research_workflow_returns_empty_on_no_hits():
 
 @pytest.mark.asyncio
 async def test_digest_workflow_returns_expected_counts(tmp_path):
-    async with await WorkflowEnvironment.start_time_skipping() as env:
-        async with Worker(
-            env.client,
+    async with await WorkflowEnvironment.start_time_skipping() as env, Worker(
+        env.client,
+        task_queue=TASK_QUEUE,
+        workflows=[DailyDigestWorkflow],
+        activities=_ALL_MOCK_ACTIVITIES,
+    ):
+        result = await env.client.execute_workflow(
+            DailyDigestWorkflow.run,
+            DigestInput(
+                top_count=5,
+                ask_count=3,
+                show_count=3,
+                detail_count=2,
+                output_dir=str(tmp_path),
+            ),
+            id="test-digest-1",
             task_queue=TASK_QUEUE,
-            workflows=[DailyDigestWorkflow],
-            activities=_ALL_MOCK_ACTIVITIES,
-        ):
-            result = await env.client.execute_workflow(
-                DailyDigestWorkflow.run,
-                DigestInput(
-                    top_count=5,
-                    ask_count=3,
-                    show_count=3,
-                    detail_count=2,
-                    output_dir=str(tmp_path),
-                ),
-                id="test-digest-1",
-                task_queue=TASK_QUEUE,
-            )
+        )
 
     assert result["top_count"] == 5
     assert result["ask_count"] == 3
@@ -196,19 +192,18 @@ async def test_digest_workflow_returns_expected_counts(tmp_path):
 
 @pytest.mark.asyncio
 async def test_digest_workflow_preview_contains_section_headers(tmp_path):
-    async with await WorkflowEnvironment.start_time_skipping() as env:
-        async with Worker(
-            env.client,
+    async with await WorkflowEnvironment.start_time_skipping() as env, Worker(
+        env.client,
+        task_queue=TASK_QUEUE,
+        workflows=[DailyDigestWorkflow],
+        activities=_ALL_MOCK_ACTIVITIES,
+    ):
+        result = await env.client.execute_workflow(
+            DailyDigestWorkflow.run,
+            DigestInput(output_dir=str(tmp_path)),
+            id="test-digest-2",
             task_queue=TASK_QUEUE,
-            workflows=[DailyDigestWorkflow],
-            activities=_ALL_MOCK_ACTIVITIES,
-        ):
-            result = await env.client.execute_workflow(
-                DailyDigestWorkflow.run,
-                DigestInput(output_dir=str(tmp_path)),
-                id="test-digest-2",
-                task_queue=TASK_QUEUE,
-            )
+        )
 
     preview = result["digest_preview"]
     assert "# HN Daily Digest" in preview
@@ -221,19 +216,18 @@ async def test_digest_workflow_preview_contains_section_headers(tmp_path):
 @pytest.mark.asyncio
 async def test_monitor_workflow_accumulates_new_hits():
     """2 iterations: first sees 2 hits, second sees same 2 (already in seen_ids)."""
-    async with await WorkflowEnvironment.start_time_skipping() as env:
-        async with Worker(
-            env.client,
+    async with await WorkflowEnvironment.start_time_skipping() as env, Worker(
+        env.client,
+        task_queue=TASK_QUEUE,
+        workflows=[TopicMonitorWorkflow],
+        activities=_ALL_MOCK_ACTIVITIES,
+    ):
+        result = await env.client.execute_workflow(
+            TopicMonitorWorkflow.run,
+            MonitorInput(topic="rust", check_interval_hours=1, max_iterations=2),
+            id="test-monitor-1",
             task_queue=TASK_QUEUE,
-            workflows=[TopicMonitorWorkflow],
-            activities=_ALL_MOCK_ACTIVITIES,
-        ):
-            result = await env.client.execute_workflow(
-                TopicMonitorWorkflow.run,
-                MonitorInput(topic="rust", check_interval_hours=1, max_iterations=2),
-                id="test-monitor-1",
-                task_queue=TASK_QUEUE,
-            )
+        )
 
     assert result["topic"] == "rust"
     assert result["iterations"] == 2
@@ -268,19 +262,18 @@ async def test_monitor_workflow_deduplicates_seen_stories():
             ],
         }
 
-    async with await WorkflowEnvironment.start_time_skipping() as env:
-        async with Worker(
-            env.client,
+    async with await WorkflowEnvironment.start_time_skipping() as env, Worker(
+        env.client,
+        task_queue=TASK_QUEUE,
+        workflows=[TopicMonitorWorkflow],
+        activities=[two_phase_search, *_ALL_MOCK_ACTIVITIES[1:]],
+    ):
+        result = await env.client.execute_workflow(
+            TopicMonitorWorkflow.run,
+            MonitorInput(topic="dedup-test", check_interval_hours=1, max_iterations=2),
+            id="test-monitor-2",
             task_queue=TASK_QUEUE,
-            workflows=[TopicMonitorWorkflow],
-            activities=[two_phase_search, *_ALL_MOCK_ACTIVITIES[1:]],
-        ):
-            result = await env.client.execute_workflow(
-                TopicMonitorWorkflow.run,
-                MonitorInput(topic="dedup-test", check_interval_hours=1, max_iterations=2),
-                id="test-monitor-2",
-                task_queue=TASK_QUEUE,
-            )
+        )
 
     # 1 from iter 1 + 1 genuinely new from iter 2 = 2 total
     assert result["total_new_stories"] == 2
