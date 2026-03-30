@@ -453,6 +453,16 @@
     .cat-dx      { color: #3fb950; }
     .cat-context { color: #ffa657; }
     .cat-security{ color: #f85149; }
+    .cat-temporal{ color: #f0bc00; }
+
+    /* ── Temporal box theme ── */
+    .temporal-box {
+      background: #161b22;
+      border-color: #f0bc0044;
+      min-width: 500px;
+    }
+    .temporal-box .box-title { color: #f0bc00; }
+    .temporal-box .tag { background: #2d2600; color: #f0bc00; }
 
     /* ══ EVALS SECTION ══════════════════════════════ */
 
@@ -914,6 +924,184 @@
 
 
   <!-- ══════════════════════════════════════════════
+       TEMPORAL WORKFLOW ORCHESTRATION
+  ══════════════════════════════════════════════ -->
+  <hr class="section-divider" />
+  <div class="section-divider-label">
+    <h2>Workflow Orchestration</h2>
+    <p>Temporal.io adds durable execution, automatic retry, cron scheduling, and full observability — without changing a single tool function.</p>
+  </div>
+
+  <div class="diagram" style="margin-top: 28px;">
+
+    <!-- CLI trigger -->
+    <div class="section-label">Trigger Layer</div>
+    <div class="layer">
+      <div class="box user-box" style="min-width:280px;">
+        <span class="box-title">Workflow CLI</span>
+        <span class="box-name">temporal/run_workflow.py</span>
+        <span class="box-detail">research · digest · monitor<br/>Connects to Temporal via gRPC · Non-blocking for long monitors</span>
+        <span class="tag">temporal.client.Client</span>
+      </div>
+    </div>
+
+    <div class="arrow-row">
+      <div class="arrow-label">
+        <span class="arrow-text">gRPC · start_workflow / execute_workflow</span>
+        <div class="arrow-line"></div>
+      </div>
+    </div>
+
+    <!-- Temporal server -->
+    <div class="section-label">Orchestration Layer</div>
+    <div class="layer">
+      <div class="box temporal-box">
+        <span class="box-title">Temporal Server</span>
+        <span class="box-name">temporalio/auto-setup:1.26 · gRPC 7233 · UI 8233</span>
+        <span class="box-detail">Persists workflow state · Manages durable timers · Schedules activity tasks · DB=memory (dev) · Web UI at localhost:8233</span>
+        <span class="tag">Workflow State · Event History · Timers</span>
+
+        <div class="tools-row" style="margin-top:12px;">
+          <div class="tool-chip">
+            <span class="chip-name" style="color:#f0bc00;">HNResearchWorkflow</span>
+            <span class="chip-api">on-demand · search + fan-out</span>
+          </div>
+          <div class="tool-chip">
+            <span class="chip-name" style="color:#f0bc00;">DailyDigestWorkflow</span>
+            <span class="chip-api">scheduled · digest → markdown</span>
+          </div>
+          <div class="tool-chip">
+            <span class="chip-name" style="color:#f0bc00;">TopicMonitorWorkflow</span>
+            <span class="chip-api">long-running · workflow.sleep()</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="arrow-row">
+      <div class="arrow-label">
+        <span class="arrow-text">task queue · hn-pulse-queue</span>
+        <div class="arrow-line"></div>
+      </div>
+    </div>
+
+    <!-- Worker -->
+    <div class="section-label">Worker Layer</div>
+    <div class="layer">
+      <div class="box temporal-box" style="min-width:600px;">
+        <span class="box-title">Temporal Worker</span>
+        <span class="box-name">temporal/worker.py · polls hn-pulse-queue · temporal/activities.py</span>
+        <span class="box-detail">Executes workflow logic + 8 activity functions · Retries on failure · 404s non-retryable</span>
+        <span class="tag">RetryPolicy: 3 attempts · 2s exponential backoff · non-retryable ApplicationError</span>
+
+        <div class="tools-row" style="margin-top:12px;">
+          <div class="tool-chip">
+            <span class="chip-name">get_top_stories</span>
+            <span class="chip-api">direct import</span>
+          </div>
+          <div class="tool-chip">
+            <span class="chip-name">get_new_stories</span>
+            <span class="chip-api">direct import</span>
+          </div>
+          <div class="tool-chip">
+            <span class="chip-name">search_stories</span>
+            <span class="chip-api">direct import</span>
+          </div>
+          <div class="tool-chip">
+            <span class="chip-name">get_story_details</span>
+            <span class="chip-api">direct import</span>
+          </div>
+          <div class="tool-chip">
+            <span class="chip-name">fetch_article</span>
+            <span class="chip-api">direct import</span>
+          </div>
+          <div class="tool-chip">
+            <span class="chip-name">get_user_profile</span>
+            <span class="chip-api">direct import</span>
+          </div>
+          <div class="tool-chip">
+            <span class="chip-name">get_ask_hn</span>
+            <span class="chip-api">direct import</span>
+          </div>
+          <div class="tool-chip">
+            <span class="chip-name">get_show_hn</span>
+            <span class="chip-api">direct import</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="arrow-row">
+      <div class="arrow-label">
+        <span class="arrow-text">httpx · async · same tool functions used by MCP server</span>
+        <div class="arrow-line"></div>
+      </div>
+    </div>
+
+    <!-- External APIs -->
+    <div class="section-label">External APIs + Output</div>
+    <div class="layer">
+      <div class="api-row">
+        <div class="box api-box">
+          <span class="box-title">HN Firebase API</span>
+          <span class="box-name">firebaseio.com/v0</span>
+          <span class="box-detail">Same APIs as MCP path<br/>429s retried automatically</span>
+          <span class="tag">Public · No Auth</span>
+        </div>
+        <div class="box api-box">
+          <span class="box-title">Algolia HN Search</span>
+          <span class="box-name">hn.algolia.com/api/v1</span>
+          <span class="box-detail">search_stories activity<br/>Rate limits retried</span>
+          <span class="tag">Public · No Auth</span>
+        </div>
+        <div class="box api-box">
+          <span class="box-title">Digest Output</span>
+          <span class="box-name">output/digest-{date}.md</span>
+          <span class="box-detail">DailyDigestWorkflow writes<br/>Docker volume mount</span>
+          <span class="tag">Local · ./output/</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Temporal flow cards -->
+  <div class="flow-row">
+    <div class="flow-card">
+      <h3 style="color:#f0bc00;">① Submit Workflow</h3>
+      <p>
+        <code>run_workflow.py research "query"</code> connects to Temporal via gRPC.
+        <code>execute_workflow</code> blocks until completion; <code>start_workflow</code>
+        returns immediately with a workflow ID and UI link — used for long-running monitors.
+      </p>
+    </div>
+    <div class="flow-card">
+      <h3 style="color:#f0bc00;">② Durable Execution</h3>
+      <p>
+        Temporal persists every workflow step as immutable events. If the worker crashes
+        mid-flight, it replays the event history on restart and resumes exactly where it
+        left off — no repeated API calls, no lost data.
+      </p>
+    </div>
+    <div class="flow-card">
+      <h3 style="color:#f0bc00;">③ Fan-out Activities</h3>
+      <p>
+        Workflows fan out via <code>asyncio.gather(*[workflow.execute_activity(...)])</code>
+        — up to 10 concurrent story fetches per workflow run. Each activity has its own
+        independent retry budget and timeout.
+      </p>
+    </div>
+    <div class="flow-card">
+      <h3 style="color:#f0bc00;">④ Durable Sleep</h3>
+      <p>
+        <code>TopicMonitorWorkflow</code> calls <code>workflow.sleep(timedelta(hours=6))</code>
+        between iterations. The timer lives in the Temporal server — the worker process
+        can be stopped and restarted without losing the countdown.
+      </p>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════
        EVALS & TESTING
   ══════════════════════════════════════════════ -->
   <hr class="section-divider" />
@@ -929,9 +1117,9 @@
       <span class="tier-label">Tier 1</span>
       <span class="tier-title">Unit Tests</span>
       <div class="tier-stats">
-        <div class="tier-stat"><span class="tier-stat-val">48</span><span class="tier-stat-key">Tests</span></div>
+        <div class="tier-stat"><span class="tier-stat-val">51</span><span class="tier-stat-key">Tests</span></div>
         <div class="tier-stat"><span class="tier-stat-val">$0</span><span class="tier-stat-key">Cost</span></div>
-        <div class="tier-stat"><span class="tier-stat-val">~0.5s</span><span class="tier-stat-key">Runtime</span></div>
+        <div class="tier-stat"><span class="tier-stat-val">~4s</span><span class="tier-stat-key">Runtime</span></div>
       </div>
       <p class="tier-desc">
         Pure tool functions called directly — no MCPApp, no server bootstrap.
@@ -1114,7 +1302,7 @@
 
   <!-- Unit test coverage by file -->
   <div class="section-divider-label" style="margin-top: 36px; padding-top: 0;">
-    <h2 style="font-size: 1rem; color: #8b949e; font-weight: 600;">Unit Test Coverage (48 tests across 7 modules)</h2>
+    <h2 style="font-size: 1rem; color: #8b949e; font-weight: 600;">Unit Test Coverage (51 tests across 7 modules)</h2>
   </div>
   <div class="unit-grid">
     <div class="unit-file-card">
@@ -1319,7 +1507,7 @@
       <div class="tradeoff-body">
         <div class="tradeoff-row">
           <span class="tradeoff-pill pill-chose">Chose</span>
-          <span class="tradeoff-text"><strong>Unit</strong> (48, $0, ~0.5s) + <strong>Integration</strong> (3, $0, ~4s) + <strong>Evals</strong> (10, ~$0.002, ~15s). Unit tests include 12 error-scenario tests and 7 fetch tool tests. Evals use <code>claude-haiku</code> to validate Claude's tool-selection accuracy.</span>
+          <span class="tradeoff-text"><strong>Unit</strong> (51, $0, ~0.5s) + <strong>Integration</strong> (3, $0, ~4s) + <strong>Evals</strong> (10, ~$0.002, ~15s). Unit tests include 12 error-scenario tests and 7 fetch tool tests. Evals use <code>claude-haiku</code> to validate Claude's tool-selection accuracy.</span>
         </div>
         <div class="tradeoff-row">
           <span class="tradeoff-pill pill-rejected">Skipped</span>
@@ -1482,6 +1670,64 @@
     </div>
 
     <!-- 11 -->
+    <div class="tradeoff-card">
+      <div class="tradeoff-header">
+        <span class="tradeoff-icon">⏱️</span>
+        <div class="tradeoff-header-text">
+          <div class="tradeoff-title">Temporal.io for durable workflow orchestration</div>
+          <div class="tradeoff-category cat-temporal">Workflow · Durability</div>
+        </div>
+      </div>
+      <div class="tradeoff-body">
+        <div class="tradeoff-row">
+          <span class="tradeoff-pill pill-chose">Chose</span>
+          <span class="tradeoff-text">Temporal with <code>@workflow.defn</code> + <code>@activity.defn</code>. Three workflows: on-demand research, scheduled daily digest, long-running topic monitor with <code>workflow.sleep()</code>. Worker in separate process, server in Docker.</span>
+        </div>
+        <div class="tradeoff-row">
+          <span class="tradeoff-pill pill-rejected">Skipped</span>
+          <span class="tradeoff-text">APScheduler or cron + plain Python scripts — simple but no durability, no retry, no observability, no recovery from crashes mid-execution.</span>
+        </div>
+        <div class="tradeoff-row">
+          <span class="tradeoff-pill pill-why">Why</span>
+          <span class="tradeoff-text">Temporal gives durability for free: if the worker crashes mid-research, the workflow replays from the last checkpoint without re-calling APIs already completed. <code>workflow.sleep(hours=6)</code> for the topic monitor survives worker restarts — impossible with cron. The Web UI at port 8233 gives full event history for every run.</span>
+        </div>
+        <div class="tradeoff-row">
+          <span class="tradeoff-pill pill-cost">Trade-off</span>
+          <span class="tradeoff-text">Adds Temporal server as a dependency. Mitigated by <code>temporalio/auto-setup:1.26</code> Docker image — single container, no external database required in dev (<code>DB=memory</code>).</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 12 -->
+    <div class="tradeoff-card">
+      <div class="tradeoff-header">
+        <span class="tradeoff-icon">📦</span>
+        <div class="tradeoff-header-text">
+          <div class="tradeoff-title">Activities call tool functions directly, not via MCP</div>
+          <div class="tradeoff-category cat-temporal">Workflow · Architecture</div>
+        </div>
+      </div>
+      <div class="tradeoff-body">
+        <div class="tradeoff-row">
+          <span class="tradeoff-pill pill-chose">Chose</span>
+          <span class="tradeoff-text"><code>from hn_pulse.tools.stories import get_top_stories</code> directly in activities. No subprocess, no JSON-RPC, no MCP handshake overhead. The worker has the package installed — function call is a direct Python import.</span>
+        </div>
+        <div class="tradeoff-row">
+          <span class="tradeoff-pill pill-rejected">Skipped</span>
+          <span class="tradeoff-text">Activities connect to the running MCP servers via <code>MultiServerMCPClient</code> — adds network hops, subprocess lifecycle management, and MCP protocol overhead inside each activity execution.</span>
+        </div>
+        <div class="tradeoff-row">
+          <span class="tradeoff-pill pill-why">Why</span>
+          <span class="tradeoff-text">The tool functions are pure async functions with no framework coupling. Calling them directly is faster (~0ms vs ~50ms per activity), simpler to test, and avoids the chicken-and-egg problem of an activity needing its own MCP client. The MCP servers and the worker are two independent deployment paths to the same underlying logic.</span>
+        </div>
+        <div class="tradeoff-row">
+          <span class="tradeoff-pill pill-cost">Trade-off</span>
+          <span class="tradeoff-text">The worker must have <code>hn_pulse</code> and <code>hn_extras</code> installed. Handled by the shared <code>Dockerfile</code> — both server and worker images are built from the same base with <code>.[temporal]</code> extras.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 13 -->
     <div class="tradeoff-card">
       <div class="tradeoff-header">
         <span class="tradeoff-icon">🚢</span>
