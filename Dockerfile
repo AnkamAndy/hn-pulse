@@ -20,8 +20,8 @@ COPY pyproject.toml ./
 # Copy source
 COPY src/ src/
 
-# Install server deps (no agent/dev extras needed in container)
-RUN uv pip install --system -e "."
+# Install server deps + temporal (worker also runs in this image)
+RUN uv pip install --system -e ".[temporal]"
 
 # Non-root user for security
 RUN useradd -m appuser

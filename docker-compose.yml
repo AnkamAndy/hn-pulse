@@ -1,21 +1,28 @@
 # HN Pulse — multi-service deployment
 #
 # Services:
-#   hn-server    — HN Pulse MCP server   (port 8000, /mcp/ endpoint)
-#   fetch-server — HN Fetch MCP server   (port 8001, /mcp/ endpoint)
+#   hn-server        — HN Pulse MCP server     (port 8000, /mcp/ endpoint)
+#   fetch-server     — HN Fetch MCP server     (port 8001, /mcp/ endpoint)
+#   temporal-server  — Temporal server + UI    (gRPC 7233, UI 8233)
+#   temporal-worker  — Temporal activity worker
 #
 # Quick start:
+#   mkdir -p output
 #   docker compose up --build
 #
-# Run the agent against the deployed services:
+# Run the agent against deployed MCP services:
 #   MCP_SERVER_URL=http://localhost:8000/mcp/ \
 #   HN_FETCH_URL=http://localhost:8001/mcp/ \
 #   ANTHROPIC_API_KEY=sk-... \
 #   python agent/agent.py "Summarise the top story and read its full article"
 #
+# Trigger a Temporal workflow:
+#   TEMPORAL_HOST=localhost:7233 python temporal/run_workflow.py digest
+#   TEMPORAL_HOST=localhost:7233 python temporal/run_workflow.py research "Rust 2025"
+#
+# Temporal UI: http://localhost:8233
 # Health check:
 #   curl http://localhost:8000/openapi.json | python3 -m json.tool
-#   curl http://localhost:8001/openapi.json | python3 -m json.tool
 
 services:
   hn-server:
@@ -51,3 +58,35 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
+
+  temporal-server:
+    image: temporalio/auto-setup:1.26
+    ports:
+      - "7233:7233"   # gRPC — worker + client connections
+      - "8233:8233"   # Web UI
+    environment:
+      - DB=memory
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8233"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  temporal-worker:
+    build: .
+    command: ["python", "temporal/worker.py"]
+    environment:
+      - TEMPORAL_HOST=temporal-server:7233
+      - TEMPORAL_NAMESPACE=default
+    volumes:
+      - ./output:/app/output
+    depends_on:
+      temporal-server:
+        condition: service_healthy
+      hn-server:
+        condition: service_healthy
+      fetch-server:
+        condition: service_healthy
+    restart: unless-stopped
